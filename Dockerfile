@@ -1,13 +1,30 @@
-FROM python:3.11-slim
+FROM python:3.11-alpine
 
-RUN apt-get update && apt-get install -y ffmpeg
+RUN apk add --no-cache \
+    nodejs \
+    npm \
+    bash \
+    git \
+    make \
+    g++ \
+    libffi-dev \
+    musl-dev \
+    gcc \
+    python3-dev
 
 WORKDIR /app
 
 COPY requirements.txt .
+RUN pip install --upgrade pip \
+    && pip install gunicorn \
+    && pip install -r requirements.txt
 
-RUN pip install --upgrade pip && pip install -r requirements.txt
+COPY package.json .
+COPY package-lock.json .
+RUN npm install
 
 COPY . .
 
-CMD ["flask", "run", "--host=0.0.0.0", "--port=5001"]
+RUN npm run build
+
+CMD ["npm", "start"]

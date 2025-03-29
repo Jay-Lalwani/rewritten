@@ -2,7 +2,7 @@ services:
   rewritten:
     image: public.ecr.aws/t7k1y3c2/rewritten:latest
     ports:
-      - "5001:5001"
+      - "3000:3000"
     volumes:
       - ./videos:/app/static/videos
       - ./database:/app/rewritten/database

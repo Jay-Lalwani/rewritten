@@ -1,0 +1,5 @@
+videos/
+static/images/
+static/videos/
+node_modules
+.next

@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "concurrently \"next start --port 3000\" \"gunicorn --bind 0.0.0.0:5001 app:app\"",
     "flask": "python -m flask run",
     "dev:all": "concurrently \"npm run dev\" \"npm run flask\"",
     "lint": "next lint",
