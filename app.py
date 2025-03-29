@@ -23,9 +23,6 @@ app = Flask(__name__,
 CORS(app)
 app.secret_key = os.environ.get('APP_SECRET_KEY', 'fallback-secret-key')
 
-if os.environ.get('FLASK_ENV') == 'production':
-    app.config['PREFERRED_URL_SCHEME'] = 'https'
-
 # ---------------------
 # 2. Setup OAuth Client
 # ---------------------
@@ -63,12 +60,9 @@ def login():
     """
     Redirects the user to Auth0's hosted login page.
     """
-    if os.environ.get('FLASK_ENV') != 'production':
-        return oauth.auth0.authorize_redirect(
-            redirect_uri=url_for("callback", _external=True)
-        )
-    else:
-        return oauth.auth0.authorize_redirect("https://hoohacks2025.schwartznetwork.net/callback")
+    return oauth.auth0.authorize_redirect(
+        redirect_uri=url_for("callback", _external=True)
+    )
 
 @app.route("/callback")
 def callback():
