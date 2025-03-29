@@ -17,7 +17,7 @@ app = Flask(__name__,
             static_folder="static",
             template_folder="templates")
 # Configure CORS to allow requests from Next.js frontend with credentials
-CORS(app, supports_credentials=True, origins=["http://localhost:3000"])
+CORS(app, resources={r"/api/*": {"origins": "http://localhost:3000", "supports_credentials": True}})
 app.secret_key = os.environ.get('SECRET_KEY', os.urandom(24).hex())
 # Configure session cookies for cross-origin requests
 app.config['SESSION_COOKIE_SAMESITE'] = 'None'
