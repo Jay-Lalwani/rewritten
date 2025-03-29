@@ -1,6 +1,6 @@
 services:
   rewritten:
-    image: public.ecr.aws/t7k1y3c2/rewritten:latest
+    image: rewritten
     ports:
       - "5001:5001"
     volumes:
