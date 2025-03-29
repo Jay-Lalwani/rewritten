@@ -1,6 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+// Import FontAwesomeIcon and specific icons
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faPencilAlt } from '@fortawesome/free-solid-svg-icons';
 
 interface Option {
   id: string;
@@ -24,25 +27,24 @@ export function DecisionOptions({ options, onDecisionMade, enabled }: DecisionOp
   };
 
   return (
-    <div className="mb-8">
-      <h4 className="text-xl font-serif border-b-2 border-amber-500 pb-2 mb-4">
-        <i className="fas fa-pencil-alt mr-2"></i> Your Decision
+    <div id="decision-container" className="mb-4">
+      <h4 className="decisions-heading">
+        {/* Replace me-2 with Tailwind mr-2 */}
+        <FontAwesomeIcon icon={faPencilAlt} className="mr-2" /> Your Decision
       </h4>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Replace Bootstrap row/cols with Tailwind grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4" id="decision-options">
         {options.map(option => (
-          <div
-            key={option.id}
-            className={`
-              p-4 border-2 rounded-lg cursor-pointer transition-all
-              ${enabled ? 'hover:shadow-lg hover:-translate-y-1' : 'opacity-70'}
-              ${selectedOption === option.id 
-                ? 'bg-red-600 text-white border-slate-800' 
-                : 'bg-white border-slate-800'}
-            `}
-            onClick={() => handleOptionClick(option.id)}
-          >
-            <p className="text-lg">{option.option}</p>
+          // Grid item - col-span is implied by grid-cols-X on parent
+          <div key={option.id} className="">
+            <div
+              className={`decision-card ${selectedOption === option.id ? 'selected' : ''}`}
+              style={{ cursor: enabled ? 'pointer' : 'default', opacity: enabled ? 1 : 0.7 }}
+              onClick={() => handleOptionClick(option.id)}
+            >
+              <p className="card-text">{option.option}</p>
+            </div>
           </div>
         ))}
       </div>

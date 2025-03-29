@@ -21,10 +21,11 @@ export function VideoPlayer({ videoUrl, onVideoEnded }: VideoPlayerProps) {
   }, [videoUrl]);
 
   return (
-    <div className="relative mb-4 bg-black rounded-lg overflow-hidden shadow-lg">
+    <div id="video-container" className="position-relative mb-4">
       <video 
         ref={videoRef}
-        className="w-full max-h-[500px] object-cover"
+        id="game-video"
+        className="w-full"
         onEnded={onVideoEnded}
         controls
         autoPlay

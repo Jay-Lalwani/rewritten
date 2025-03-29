@@ -2,9 +2,9 @@ import React from 'react';
 
 export function Header() {
   return (
-    <header className="text-center py-4 bg-slate-800 text-white">
-      <h1 className="text-4xl font-bold font-serif">Rewritten</h1>
-      <h2 className="text-xl italic text-red-500">Reshape History Through Your Decisions</h2>
+    <header className="text-center py-8">
+      <h1 className="game-title">Rewritten</h1>
+      <h2 className="game-subtitle">Reshape History Through Your Decisions</h2>
     </header>
   );
 } 
