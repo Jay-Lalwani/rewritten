@@ -34,10 +34,7 @@ python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Then run the setup command
-npm run setup
-
-# Initialize the database
-npm run init-db
+pip install -r requirements.txt && npm install
 ```
 
 ### Manual Setup (Alternative)
