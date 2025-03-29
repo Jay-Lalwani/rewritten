@@ -27,7 +27,8 @@ def init_db():
     """Initialize the database."""
     db = get_db()
     
-    # Create tables
+    # Create the main sessions table
+    # (storing the current scene's data, plus a decision history)
     db.execute('''
         CREATE TABLE IF NOT EXISTS sessions (
             id TEXT PRIMARY KEY,
@@ -40,4 +41,18 @@ def init_db():
         )
     ''')
     
-    db.commit() 
+    # Create a separate cache table for scenes that have been generated before
+    # so we can reuse narratives, prompts, and media URLs for the same scenario/scene
+    db.execute('''
+        CREATE TABLE IF NOT EXISTS scene_cache (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            scenario TEXT,
+            scene_id INTEGER,
+            narrative_data TEXT,
+            scene_prompts TEXT,
+            media_urls TEXT,
+            UNIQUE(scenario, scene_id, narrative_data)
+        )
+    ''')
+    
+    db.commit()
