@@ -1,0 +1,16 @@
+services:
+  rewritten:
+    image: public.ecr.aws/t7k1y3c2/rewritten:latest
+    ports:
+      - "5001:5001"
+    volumes:
+      - ./videos:/app/static/videos
+      - ./database:/app/rewritten/database
+    env_file:
+      - .env
+  newt:
+    image: fosrl/newt
+    container_name: newt
+    restart: unless-stopped
+    env_file:
+      - .env
