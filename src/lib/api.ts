@@ -19,13 +19,14 @@ interface ApiResponse<T = any> {
 export async function fetchFromFlask<T = any>(
   endpoint: string,
   options: {
-    method?: 'GET' | 'POST';
+    method?: 'GET' | 'POST' | 'DELETE';
     body?: any;
   } = {}
 ): Promise<ApiResponse<T>> {
   const { method = 'GET', body } = options;
   
   try {
+    console.log(`Making API request to: ${API_URL}/api/${endpoint}`);
     const response = await fetch(`${API_URL}/api/${endpoint}`, {
       method,
       headers: {
@@ -35,17 +36,27 @@ export async function fetchFromFlask<T = any>(
       credentials: 'include', // Include cookies for session management
     });
 
-    const data = await response.json();
+    // Attempt to parse JSON response
+    let data;
+    try {
+      data = await response.json();
+    } catch (error) {
+      console.error('Failed to parse JSON response:', error);
+      return { error: 'Invalid response format from server' };
+    }
     
     if (!response.ok) {
-      return { error: data.error || 'Something went wrong' };
+      console.error('API error response:', data);
+      return { error: data.error || `Error ${response.status}: ${response.statusText}` };
     }
     
     return { data };
   } catch (error) {
-    console.error('API error:', error);
+    console.error('API fetch error:', error);
     return { 
-      error: error instanceof Error ? error.message : 'Failed to connect to the server' 
+      error: error instanceof Error 
+        ? `Connection error: ${error.message}` 
+        : 'Failed to connect to the server' 
     };
   }
 }
@@ -62,8 +73,7 @@ export const api = {
       body: { name } 
     }),
     delete: (name: string) => fetchFromFlask(`scenarios/${name}`, { 
-      method: 'POST', 
-      body: { _method: 'DELETE' } 
+      method: 'DELETE'
     }),
   },
   

@@ -16,8 +16,12 @@ load_dotenv()
 app = Flask(__name__, 
             static_folder="static",
             template_folder="templates")
-CORS(app)
+# Configure CORS to allow requests from Next.js frontend with credentials
+CORS(app, supports_credentials=True, origins=["http://localhost:3000"])
 app.secret_key = os.environ.get('SECRET_KEY', os.urandom(24).hex())
+# Configure session cookies for cross-origin requests
+app.config['SESSION_COOKIE_SAMESITE'] = 'None'
+app.config['SESSION_COOKIE_SECURE'] = False  # Set to True in production with HTTPS
 
 # Initialize database
 with app.app_context():
@@ -321,4 +325,4 @@ def delete_scenario(scenario_name):
     return jsonify({'success': True, 'message': f'Scenario \"{scenario_name}\" deleted successfully'})
 
 if __name__ == '__main__':
-    app.run(debug=True, port=3000)
+    app.run(debug=True, port=5000)
