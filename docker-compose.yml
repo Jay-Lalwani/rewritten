@@ -8,9 +8,12 @@ services:
       - ./database:/app/rewritten/database
     env_file:
       - .env
-  newt:
-    image: fosrl/newt
-    container_name: newt
-    restart: unless-stopped
-    env_file:
-      - .env
+
+  traefik:
+    image: traefik:v3.3.3
+    container_name: traefik
+    command:
+      - --configFile=/etc/traefik/traefik_config.yml
+    volumes:
+      - ./traefik:/etc/traefik:ro
+      - ./letsencrypt:/letsencrypt
