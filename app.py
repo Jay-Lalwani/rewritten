@@ -1,9 +1,13 @@
 import os
 import uuid
 import json
-from flask import Flask, request, jsonify, render_template, session
+from flask import Flask, request, jsonify, render_template, session, redirect, url_for
 from flask_cors import CORS
 from dotenv import load_dotenv
+
+# 1. Import Authlib
+from authlib.integrations.flask_client import OAuth
+from functools import wraps
 
 from api.writer_agent import generate_narrative
 from api.producer_agent import generate_scene_prompts
@@ -17,13 +21,79 @@ app = Flask(__name__,
             static_folder="static",
             template_folder="templates")
 CORS(app)
-app.secret_key = os.environ.get('SECRET_KEY', os.urandom(24).hex())
+app.secret_key = os.environ.get('APP_SECRET_KEY', 'fallback-secret-key')
+
+# ---------------------
+# 2. Setup OAuth Client
+# ---------------------
+oauth = OAuth(app)
+
+oauth.register(
+    "auth0",
+    client_id=os.environ.get("AUTH0_CLIENT_ID"),
+    client_secret=os.environ.get("AUTH0_CLIENT_SECRET"),
+    client_kwargs={
+        "scope": "openid profile email",
+    },
+    # This retrieves the Auth0 OIDC configuration dynamically
+    server_metadata_url=f'https://{os.environ.get("AUTH0_DOMAIN")}/.well-known/openid-configuration'
+)
+
+# --------------------
+# 3. Auth Decorator
+# --------------------
+def requires_auth(f):
+    """Use this decorator on any route you want to protect."""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if "user" not in session:
+            # Not logged in, redirect to login
+            return redirect(url_for("login"))
+        return f(*args, **kwargs)
+    return decorated
+
+# --------------------
+# 4. Auth Routes
+# --------------------
+@app.route("/login")
+def login():
+    """
+    Redirects the user to Auth0's hosted login page.
+    """
+    return oauth.auth0.authorize_redirect(
+        redirect_uri=url_for("callback", _external=True)
+    )
+
+@app.route("/callback")
+def callback():
+    """
+    Handles the callback from Auth0. It will exchange the 'code' for valid tokens,
+    store them in session, and then redirect to your protected route.
+    """
+    token = oauth.auth0.authorize_access_token()
+    session["user"] = token
+    return redirect(url_for("index"))  # or any route you want after login
+
+@app.route("/logout")
+def logout():
+    """
+    Logs the user out (clears local session) and also logs them out of Auth0.
+    """
+    session.clear()
+    # For a full logout, redirect to Auth0's logout endpoint
+    auth0_domain = os.environ.get("AUTH0_DOMAIN")
+    client_id = os.environ.get("AUTH0_CLIENT_ID")
+    return redirect(
+        f"https://{auth0_domain}/v2/logout?"
+        f"returnTo={url_for('index', _external=True)}&client_id={client_id}"
+    )
 
 # Initialize database
 with app.app_context():
     init_db()
 
 @app.route('/')
+@requires_auth  # <--- this ensures only logged-in users can start the game
 def index():
     """Render the main game page."""
     return render_template('index.html')
