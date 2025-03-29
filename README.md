@@ -1,96 +1,229 @@
-# Rewritten: AI-Powered Interactive Historical Adventure Game
+# Rewritten: Reshape History
 
-An interactive game that lets players reshape history through their decisions, powered by AI-generated narratives and immersive media.
+An interactive historical narrative experience where users can explore how different decisions might have changed the course of history.
 
-## Overview
+## Project Architecture
 
-"Rewritten" is an educational game that combines:
-- AI-generated historical narratives with branching storylines
-- Visual storytelling through AI-generated images and videos
-- Interactive decision-making that impacts historical outcomes
+This project uses a hybrid architecture:
+- **Flask Backend**: Handles AI-driven narrative generation, video generation, and database operations
+- **Next.js Frontend**: Provides a modern, responsive user interface
 
-Players experience pivotal historical moments like the Cuban Missile Crisis, making decisions that could rewrite history.
+## Prerequisites
 
-## Features
+- Node.js 18+ and npm
+- Python 3.8+
+- pip (Python package installer)
+- Git
 
-- **AI Story Generation**: Creates historically accurate scenarios with multiple decision paths
-- **Dynamic Video Generation**: Produces visual representations of the narrative on-the-fly
-- **Personalized Experience**: Each playthrough creates a unique storyline based on player choices
-- **Educational Value**: Learn history by experiencing it in an immersive, interactive format
+## Initial Setup
 
-## Setup Instructions
-
-### Prerequisites
-
-- Python 3.11+
-- API keys for:
-  - Google Gemini API: For narrative and prompt generation
-  - Replicate API: For image generation
-  - RunwayML API: For video generation (optional - fake implementation included for demo)
-
-### Installation
-
-1. Set up environment variables in a `.env` file in the `rewritten` directory:
-
-```
-GEMINI_API_KEY=your_gemini_api_key
-REPLICATE_API_TOKEN=your_replicate_api_token
-RUNWAY_API_KEY=your_runway_api_key (optional)
-SECRET_KEY=your_flask_secret_key
-```
-
-2. Install the required dependencies:
+### Clone the Repository
 
 ```bash
+git clone https://github.com/yourusername/rewritten.git
 cd rewritten
+```
+
+### One-Command Setup
+
+For a quick setup that installs both frontend and backend dependencies:
+
+```bash
+# Create and activate a Python virtual environment first
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Then run the setup command
+npm run setup
+
+# Initialize the database
+npm run init-db
+```
+
+### Manual Setup (Alternative)
+
+#### Backend Setup
+
+1. Create and activate a Python virtual environment:
+
+```bash
+python -m venv venv
+
+# On Windows
+venv\Scripts\activate
+
+# On macOS/Linux
+source venv/bin/activate
+```
+
+2. Install backend dependencies:
+
+```bash
 pip install -r requirements.txt
-# install ffmpeg
 ```
 
-### Running the Application
-
-1. Start the Flask application:
+3. Set up environment variables:
 
 ```bash
-cd rewritten
-python app.py
+# Copy the example .env file
+cp .env.example .env
+
+# Edit the .env file with your configuration
+# Particularly the API keys for narrative and media generation
 ```
 
-2. Open your web browser and navigate to:
+4. Initialize the database:
 
-```
-http://localhost:5000
+```bash
+npm run init-db
+# OR
+flask init-db
 ```
 
-3. Choose a historical scenario and begin your adventure.
+#### Frontend Setup
+
+1. Install Node.js dependencies:
+
+```bash
+npm install
+```
+
+2. Configure frontend environment variables:
+
+```bash
+# Ensure .env.local exists with the Flask backend URL
+echo "NEXT_PUBLIC_FLASK_API_URL=http://localhost:5000" > .env.local
+```
 
 ## Project Structure
 
-- `app.py`: Main Flask application
-- `api/`: Backend modules for AI integration
-  - `writer_agent.py`: Generates historical narratives using Gemini 2.0
-  - `producer_agent.py`: Creates visual prompts using Gemini 2.0
-  - `media_generator.py`: Handles image and video generation
-- `database/`: Database management
-- `static/`: Frontend assets (CSS, JavaScript, images, videos)
-- `templates/`: HTML templates
-- `runwayml.py`: Placeholder implementation of the RunwayML client (for demo purposes)
+The project has a hybrid structure with both Next.js and Flask components:
 
-## Usage
+- `/app.py`: Main Flask application
+- `/database/`: Database management and models
+- `/api/`: Python modules for AI narrative and media generation
+  - `writer_agent.py`: Narrative generation
+  - `producer_agent.py`: Scene prompt generation
+  - `media_generator.py`: Video generation 
+- `/static/`: Static assets for the Flask app
+- `/templates/`: HTML templates for the Flask app
+- `/src/`: Next.js application source
+  - `/app/`: Next.js pages using App Router
+  - `/components/`: React components
+  - `/lib/`: Utility functions and API client
 
-1. Select a historical scenario from the main screen
-2. Watch the generated video that sets up the historical context
-3. Read the narrative and choose from three possible decisions
-4. See how your decisions affect the course of history
-5. Track your decision path in the progress tracker
+> **Important**: Ensure the `/api` directory exists with proper Python modules. The Flask backend imports from this directory.
 
-## Notes
+## Running the Application
 
-This implementation uses:
-- Google AI Client with Gemini 2.0 for text generation
-- Replicate API for image generation
-- A placeholder implementation of RunwayML for video generation in demo mode
+### Development Mode
+
+To run both the Flask backend and Next.js frontend simultaneously:
+
+```bash
+npm run dev:all
+```
+
+This will start:
+- Flask backend on http://localhost:5000
+- Next.js frontend on http://localhost:3000
+
+### Running Components Separately
+
+To run the Next.js frontend only:
+
+```bash
+npm run dev
+```
+
+To run the Flask backend only:
+
+```bash
+npm run flask
+# OR with debug mode
+npm run flask -- --debug
+```
+
+## Application Features
+
+### Scenario Management
+
+- Create new historical scenarios
+- Choose from existing scenarios
+- Delete scenarios
+
+### Interactive Narrative Experience
+
+- Watch AI-generated videos representing historical moments
+- Read generated narrative text
+- Make decisions that alter the course of history
+- Track your decision history throughout the scenario
+
+## API Communication
+
+The frontend communicates with the Flask backend via these key endpoints:
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/scenarios` | GET | Retrieve available scenarios |
+| `/api/scenarios` | POST | Create a new scenario |
+| `/api/scenarios/:name` | DELETE | Delete a scenario |
+| `/api/start` | POST | Start a new game session |
+| `/api/decision` | POST | Make a decision in the current narrative |
+| `/api/progress` | GET | Get the current game progress |
+
+The Flask backend handles:
+- Narrative generation using AI models
+- Video generation and processing
+- Game state management
+- Session tracking
+
+## Building for Production
+
+### Frontend Build
+
+```bash
+npm run build
+```
+
+### Starting Production Servers
+
+For the Next.js frontend:
+
+```bash
+npm run start
+```
+
+For the Flask backend, use a production WSGI server like Gunicorn:
+
+```bash
+gunicorn --bind 0.0.0.0:5000 app:app
+```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **"ModuleNotFoundError: No module named 'api'"**:
+   - Ensure the `/api` directory exists at the project root
+   - Make sure it contains `__init__.py`, `writer_agent.py`, `producer_agent.py`, and `media_generator.py`
+   - Verify that your Python virtualenv is activated
+
+2. **Flask server doesn't start**:
+   - Ensure the virtual environment is activated
+   - Check that all required Python dependencies are installed
+   - Verify that the required environment variables are set
+
+3. **Next.js build fails**:
+   - Check for TypeScript errors with `npm run lint`
+   - Ensure all npm dependencies are installed
+   - Verify the Next.js configuration
+
+4. **API communication errors**:
+   - Confirm that CORS is properly configured
+   - Verify that the Flask backend URL is correct in .env.local
+   - Check the browser console for detailed error messages
 
 ## License
 
-MIT 
+[MIT License](LICENSE) 

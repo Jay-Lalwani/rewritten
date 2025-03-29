@@ -5,11 +5,11 @@ from flask import g, current_app
 def get_db():
     """Connect to the database."""
     if 'db' not in g:
-        if not os.path.exists('rewritten/database'):
-            os.makedirs('rewritten/database')
+        if not os.path.exists('database'):
+            os.makedirs('database')
         
         g.db = sqlite3.connect(
-            'rewritten/database/rewritten.db',
+            'database/rewritten.db',
             detect_types=sqlite3.PARSE_DECLTYPES
         )
         g.db.row_factory = sqlite3.Row
