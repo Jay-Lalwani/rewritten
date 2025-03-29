@@ -1,10 +1,13 @@
 all: auth build tag push
 
 auth:
-	aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/t7k1y3c2
+	AWS_PROIFLE=personal aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/t7k1y3c2
+
+build-am64:
+	docker buildx build --platform linux/amd64 -t rewritten .
 
 build:
-	docker buildx build --platform linux/amd64 -t rewritten .
+	docker build -t rewritten .
 
 tag:
 	docker tag rewritten:latest public.ecr.aws/t7k1y3c2/rewritten:latest
