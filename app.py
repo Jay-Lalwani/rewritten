@@ -63,9 +63,12 @@ def login():
     """
     Redirects the user to Auth0's hosted login page.
     """
-    return oauth.auth0.authorize_redirect(
-        redirect_uri=url_for("callback", _external=True)
-    )
+    if os.environ.get('FLASK_ENV') != 'production':
+        return oauth.auth0.authorize_redirect(
+            redirect_uri=url_for("callback", _external=True)
+        )
+    else:
+        return oauth.auth0.authorize_redirect("https://hoohacks2025.schwartznetwork.net/callback")
 
 @app.route("/callback")
 def callback():
