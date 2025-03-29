@@ -100,7 +100,7 @@ with app.app_context():
 
 
 @app.route("/")
-@requires_auth  # Auth0 authentication required
+# @requires_auth  # Auth0 authentication required
 def index():
     """Render the main game page."""
     return render_template("index.html")

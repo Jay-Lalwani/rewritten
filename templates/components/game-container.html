@@ -1,0 +1,15 @@
+<div id="game-container" class="d-none">
+  <div class="row g-0">
+    <!-- Left column: Video and Decisions -->
+    <div class="col-md-8 game-left-column">
+      {% include 'components/video-player.html' %}
+      {% include 'components/decision-container.html' %}
+      {% include 'components/progress-tracker.html' %}
+    </div>
+
+    <!-- Right column: Narrative -->
+    <div class="col-md-4 game-right-column">
+      {% include 'components/narrative-container.html' %}
+    </div>
+  </div>
+</div> 
