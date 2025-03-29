@@ -23,6 +23,9 @@ app = Flask(__name__,
 CORS(app)
 app.secret_key = os.environ.get('APP_SECRET_KEY', 'fallback-secret-key')
 
+if os.environ.get('FLASK_ENV') == 'production':
+    app.config['PREFERRED_URL_SCHEME'] = 'https'
+
 # ---------------------
 # 2. Setup OAuth Client
 # ---------------------
