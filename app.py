@@ -93,7 +93,7 @@ with app.app_context():
     init_db()
 
 @app.route('/')
-@requires_auth  # <--- this ensures only logged-in users can start the game
+@requires_auth  # Auth0 authentication required
 def index():
     """Render the main game page."""
     return render_template('index.html')
