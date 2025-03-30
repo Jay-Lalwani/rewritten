@@ -101,6 +101,21 @@
                   <option value="Manhattan Project">Manhattan Project</option>
                 </select>
               </div>
+              <div class="mb-3">
+                <label for="assignment-age-group" class="form-label">Age Group</label>
+                <select class="form-select" id="assignment-age-group">
+                  <option value="" selected disabled>Select age group</option>
+                  <option value="elementary">Elementary (8-10)</option>
+                  <option value="middle">Middle School (11-13)</option>
+                  <option value="highschool">High School (14-18)</option>
+                  <option value="college">College (18+)</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label for="assignment-file" class="form-label">Attach Lesson Plan (optional)</label>
+                <input type="file" class="form-control" id="assignment-file">
+                <div class="form-text">Upload a lesson plan or additional materials for this assignment.</div>
+              </div>
               <button type="submit" class="btn btn-primary">Create Assignment</button>
             </form>
           </div>
