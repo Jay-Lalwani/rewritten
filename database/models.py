@@ -12,6 +12,8 @@ class Session(db.Model):
     id = db.Column(db.String(36), primary_key=True)
     scenario = db.Column(db.String(100), nullable=False)
     current_scene_id = db.Column(db.Integer, default=0)
+    student_id = db.Column(db.Integer, db.ForeignKey("students.id", name="fk_sessions_student_id"), nullable=True)
+    assignment_id = db.Column(db.Integer, db.ForeignKey("assignments.id", name="fk_sessions_assignment_id"), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(
         db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
@@ -37,6 +39,8 @@ class Session(db.Model):
         back_populates="session",
         cascade="all, delete-orphan",
     )
+    student = relationship("Student", backref="sessions")
+    assignment = relationship("Assignment", backref="sessions")
 
     @property
     def decision_history(self):
@@ -280,8 +284,9 @@ class ClassVideo(db.Model):
 # Association table for tracking student progress on assignments
 student_assignment_progress = db.Table(
     "student_assignment_progress",
-    db.Column("student_id", db.Integer, db.ForeignKey("students.id"), primary_key=True),
-    db.Column("assignment_id", db.Integer, db.ForeignKey("assignments.id"), primary_key=True),
+    db.Column("student_id", db.Integer, db.ForeignKey("students.id", name="fk_progress_student_id"), primary_key=True),
+    db.Column("assignment_id", db.Integer, db.ForeignKey("assignments.id", name="fk_progress_assignment_id"), primary_key=True),
+    db.Column("current_session_id", db.String(36), db.ForeignKey("sessions.id", name="fk_progress_session_id"), nullable=True),
     db.Column("completed", db.Boolean, default=False),
     db.Column("score", db.Integer, nullable=True),
     db.Column("last_scene_id", db.Integer, default=0),
@@ -314,3 +319,26 @@ class Assignment(db.Model):
 
     def __repr__(self):
         return f"<Assignment {self.id}: {self.title} ({self.access_code})>"
+
+
+class QuestionResponse(db.Model):
+    __tablename__ = "question_responses"
+    
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    student_id = db.Column(db.Integer, db.ForeignKey("students.id", name="fk_question_student_id"), nullable=False)
+    assignment_id = db.Column(db.Integer, db.ForeignKey("assignments.id", name="fk_question_assignment_id"), nullable=False)
+    session_id = db.Column(db.String(36), db.ForeignKey("sessions.id", name="fk_question_session_id"), nullable=False)
+    scene_id = db.Column(db.Integer, nullable=False)
+    question_text = db.Column(db.Text, nullable=False)
+    student_answer = db.Column(db.Text, nullable=False)
+    is_correct = db.Column(db.Boolean, nullable=False)
+    score = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    student = relationship("Student", backref="question_responses")
+    assignment = relationship("Assignment", backref="question_responses")
+    session = relationship("Session", backref="question_responses")
+    
+    def __repr__(self):
+        return f"<QuestionResponse {self.id}: Student {self.student_id}, Assignment {self.assignment_id}>"

@@ -8,6 +8,7 @@ from authlib.integrations.flask_client import OAuth
 from dotenv import load_dotenv
 from flask import Flask, jsonify, redirect, render_template, request, session, url_for
 from flask_cors import CORS
+from sqlalchemy import text
 
 from api.media_generator import concatenate_videos, generate_scene_videos
 from api.producer_agent import generate_scene_prompts
@@ -705,23 +706,33 @@ def join_assignment():
     existing = db.session.query(student_assignment_progress).filter_by(
         student_id=student_id, assignment_id=assignment.id).first()
     
-    if existing:
-        return jsonify({"error": "You're already enrolled in this assignment"}), 409
-    
-    # Enroll the student
-    stmt = student_assignment_progress.insert().values(
-        student_id=student_id,
-        assignment_id=assignment.id
-    )
-    db.session.execute(stmt)
-    db.session.commit()
-    
-    # Start a game session for this scenario
+    # Create a new session ID
     session_id = str(uuid.uuid4())
+    
+    if existing:
+        # Student is already enrolled, but we'll create a new session for them
+        # Update their current_session_id
+        stmt = student_assignment_progress.update().where(
+            (student_assignment_progress.c.student_id == student_id) & 
+            (student_assignment_progress.c.assignment_id == assignment.id)
+        ).values(current_session_id=session_id)
+        db.session.execute(stmt)
+    else:
+        # Enroll the student
+        stmt = student_assignment_progress.insert().values(
+            student_id=student_id,
+            assignment_id=assignment.id,
+            current_session_id=session_id
+        )
+        db.session.execute(stmt)
+    
+    # Start a game session for this scenario with the student and assignment IDs
     game_session = GameSession(
         id=session_id,
         scenario=assignment.scenario,
-        current_scene_id=0
+        current_scene_id=0,
+        student_id=student_id,
+        assignment_id=assignment.id
     )
     db.session.add(game_session)
     db.session.commit()
@@ -750,27 +761,42 @@ def get_student_assignments():
     
     student_id = session.get("user_id")
     
-    # Query assignments the student is enrolled in
-    assignments = db.session.query(
-        Assignment, student_assignment_progress
-    ).join(
-        student_assignment_progress,
-        Assignment.id == student_assignment_progress.c.assignment_id
-    ).filter(
-        student_assignment_progress.c.student_id == student_id
-    ).all()
+    # Get assignment IDs for this student using parameterized query
+    progress_records = db.session.execute(
+        text("SELECT assignment_id, completed, score, last_scene_id FROM student_assignment_progress WHERE student_id = :student_id"),
+        {"student_id": student_id}
+    ).fetchall()
     
+    # Create a dictionary of progress info keyed by assignment_id
+    progress_by_assignment = {
+        record[0]: {
+            "completed": record[1],
+            "score": record[2],
+            "last_scene_id": record[3]
+        }
+        for record in progress_records
+    }
+    
+    # Get the actual assignments
+    assignment_ids = list(progress_by_assignment.keys())
+    if not assignment_ids:
+        return jsonify({"assignments": []})
+    
+    assignments = Assignment.query.filter(Assignment.id.in_(assignment_ids)).all()
+    
+    # Build the response
     assignment_list = []
-    for assignment, progress in assignments:
+    for assignment in assignments:
+        progress = progress_by_assignment.get(assignment.id, {})
         assignment_list.append({
             "id": assignment.id,
             "title": assignment.title,
             "scenario": assignment.scenario,
             "teacher_name": assignment.teacher.name,
             "class_name": assignment.class_.name if assignment.class_ else None,
-            "completed": progress.completed,
-            "score": progress.score,
-            "last_scene_id": progress.last_scene_id
+            "completed": progress.get("completed", False),
+            "score": progress.get("score"),
+            "last_scene_id": progress.get("last_scene_id", 0)
         })
     
     return jsonify({"assignments": assignment_list})
