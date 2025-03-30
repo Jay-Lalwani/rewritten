@@ -634,6 +634,9 @@
 
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{{ url_for('static', filename='js/services/api.js') }}"></script>
+<script src="{{ url_for('static', filename='js/components/game.js') }}"></script>
+<script src="{{ url_for('static', filename='js/components/scenario.js') }}"></script>
 <script>
   // Utility function to set the active sidebar item
   function setActiveSidebarItem(itemText) {
@@ -1357,6 +1360,16 @@
   document.addEventListener('DOMContentLoaded', function() {
     // Initialize based on user type
     const userType = document.body.getAttribute('data-user-type');
+    
+    // Initialize ScenarioComponent if available
+    if (typeof ScenarioComponent !== 'undefined') {
+      console.log("Initializing ScenarioComponent");
+      // Check if we're on the Story Gallery panel
+      const storyGalleryPanel = document.getElementById('story-gallery-panel');
+      if (storyGalleryPanel && storyGalleryPanel.style.display === 'block') {
+        ScenarioComponent.init();
+      }
+    }
     
     if (userType === 'teacher') {
       // Load dashboard assignments list for teachers

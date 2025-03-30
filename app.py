@@ -467,6 +467,7 @@ def get_progress():
 @app.route("/api/scenarios", methods=["GET"])
 def get_scenarios():
     """Get all distinct scenarios from the database."""
+    print("Getting scenarios")
     # Get distinct scenarios using SQLAlchemy
     scenarios = db.session.query(GameSession.scenario).distinct().all()
     scenario_list = [row[0] for row in scenarios]
@@ -474,28 +475,53 @@ def get_scenarios():
     # Filter out the uppercase 'Apollo 11' scenario
     scenario_list = [scenario for scenario in scenario_list if scenario != "Apollo 11"]
     
+    # Add default scenarios if the list is empty
+    if not scenario_list:
+        print("No scenarios found, adding defaults")
+        default_scenarios = ["Cuban Missile Crisis", "American Revolution", "World War II"]
+        
+        # Add default scenarios to database
+        for scenario in default_scenarios:
+            new_id = str(uuid.uuid4())
+            game_session = GameSession(id=new_id, scenario=scenario, current_scene_id=0)
+            db.session.add(game_session)
+        
+        db.session.commit()
+        scenario_list = default_scenarios
+    
+    print(f"Returning scenarios: {scenario_list}")
     return jsonify({"scenarios": scenario_list})
 
 
 @app.route("/api/scenarios", methods=["POST"])
 def add_scenario():
     """Add a new scenario to the database."""
-    scenario_name = request.json.get("name")
-    if not scenario_name:
-        return jsonify({"error": "No scenario name provided"}), 400
+    print("Received add_scenario request")
+    try:
+        scenario_name = request.json.get("name")
+        print(f"Adding scenario: {scenario_name}")
+        
+        if not scenario_name:
+            print("No scenario name provided")
+            return jsonify({"error": "No scenario name provided"}), 400
 
-    # Check if scenario exists using SQLAlchemy
-    existing = GameSession.query.filter_by(scenario=scenario_name).first()
-    if existing:
-        return jsonify({"success": False, "message": "Scenario already exists"}), 409
+        # Check if scenario exists using SQLAlchemy
+        existing = GameSession.query.filter_by(scenario=scenario_name).first()
+        if existing:
+            print(f"Scenario already exists: {scenario_name}")
+            return jsonify({"success": False, "message": "Scenario already exists"}), 409
 
-    # Create new session with this scenario
-    new_id = str(uuid.uuid4())
-    game_session = GameSession(id=new_id, scenario=scenario_name, current_scene_id=0)
-    db.session.add(game_session)
-    db.session.commit()
+        # Create new session with this scenario
+        new_id = str(uuid.uuid4())
+        game_session = GameSession(id=new_id, scenario=scenario_name, current_scene_id=0)
+        db.session.add(game_session)
+        db.session.commit()
+        print(f"Successfully added scenario: {scenario_name}")
 
-    return jsonify({"success": True, "scenario": scenario_name})
+        return jsonify({"success": True, "scenario": scenario_name})
+    except Exception as e:
+        print(f"Error adding scenario: {e}")
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/api/scenarios/<scenario_name>", methods=["DELETE"])

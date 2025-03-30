@@ -24,14 +24,18 @@ const ScenarioComponent = {
     if (this.newScenarioForm) {
       this.newScenarioForm.addEventListener("submit", (e) => {
         e.preventDefault();
+        console.log("Form submitted");
         const scenarioNameInput = Utils.getById("new-scenario-name");
         const scenarioName = scenarioNameInput.value.trim();
+        console.log("Scenario name:", scenarioName);
 
         if (scenarioName) {
           this.addNewScenario(scenarioName);
           scenarioNameInput.value = "";
         }
       });
+    } else {
+      console.warn("New scenario form not found");
     }
   },
 
@@ -94,7 +98,17 @@ const ScenarioComponent = {
       // Don't trigger if clicking the delete button
       if (!e.target.closest(".delete-scenario")) {
         const scenarioName = this.getAttribute("data-scenario");
-        GameComponent.startGame(scenarioName);
+        
+        // Check if GameComponent exists, otherwise redirect to view-scenarios
+        if (typeof GameComponent !== 'undefined') {
+          GameComponent.startGame(scenarioName);
+        } else {
+          console.log(`GameComponent not found, redirecting to scenario: ${scenarioName}`);
+          // Store the scenario in localStorage for auto-start
+          localStorage.setItem('startScenario', scenarioName);
+          // Redirect to the view-scenarios page
+          window.location.href = '/view-scenarios';
+        }
       }
     });
 
@@ -123,17 +137,23 @@ const ScenarioComponent = {
           this.addScenarioCard(data.scenario);
 
           // Close the modal
-          const modal = bootstrap.Modal.getInstance(
-            document.getElementById("addScenarioModal"),
-          );
-          if (modal) {
-            modal.hide();
+          const modalElement = document.getElementById("addScenarioModal");
+          if (modalElement) {
+            const modalInstance = bootstrap.Modal.getInstance(modalElement);
+            if (modalInstance) {
+              modalInstance.hide();
+            } else {
+              // If modal instance doesn't exist yet, create and hide it
+              const newModal = new bootstrap.Modal(modalElement);
+              newModal.hide();
+            }
           }
         } else {
           alert(data.message || "Scenario already exists");
         }
       })
-      .catch(() => {
+      .catch((error) => {
+        console.error("Error adding scenario:", error);
         alert("An error occurred while adding the scenario.");
       });
   },

@@ -37,7 +37,12 @@ const GameComponent = {
     this.ttsButton = Utils.getById("tts-button");
     this.narrativeAudio = Utils.getById("narrative-audio");
 
-    this.initEventListeners();
+    // Only initialize event listeners if we're on a page with game elements
+    if (this.gameContainer) {
+      this.initEventListeners();
+    } else {
+      console.log("Game UI elements not found, GameComponent is in limited mode");
+    }
   },
 
   /**
@@ -141,6 +146,16 @@ const GameComponent = {
    * @param {string} scenario - The scenario name
    */
   startGame: function (scenario) {
+    // Check if game UI elements exist
+    if (!this.gameContainer || !this.gameVideo) {
+      console.log(`Game UI elements not found, redirecting to scenario: ${scenario}`);
+      // Store the scenario in localStorage for auto-start
+      localStorage.setItem('startScenario', scenario);
+      // Redirect to the view-scenarios page
+      window.location.href = '/view-scenarios';
+      return;
+    }
+    
     // Show loading screen
     Utils.hideElement(this.startScreen);
     Utils.showElement(this.loadingScreen);

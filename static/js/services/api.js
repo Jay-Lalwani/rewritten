@@ -8,8 +8,19 @@ const ApiService = {
    * @returns {Promise} Promise resolving to scenarios data
    */
   getScenarios: function () {
+    console.log("Fetching scenarios from server...");
     return fetch("/api/scenarios")
-      .then((response) => response.json())
+      .then((response) => {
+        console.log("Scenarios API response status:", response.status);
+        if (!response.ok) {
+          throw new Error(`Server responded with status: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log("Scenarios loaded:", data);
+        return data;
+      })
       .catch((error) => {
         console.error("Error loading scenarios:", error);
         throw error;
@@ -22,6 +33,7 @@ const ApiService = {
    * @returns {Promise} Promise resolving to result data
    */
   addScenario: function (scenarioName) {
+    console.log(`Adding scenario: "${scenarioName}"`);
     return fetch("/api/scenarios", {
       method: "POST",
       headers: {
@@ -29,7 +41,17 @@ const ApiService = {
       },
       body: JSON.stringify({ name: scenarioName }),
     })
-      .then((response) => response.json())
+      .then((response) => {
+        console.log(`Response status: ${response.status}`);
+        if (!response.ok) {
+          throw new Error(`Server responded with status: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log("Scenario added successfully:", data);
+        return data;
+      })
       .catch((error) => {
         console.error("Error adding scenario:", error);
         throw error;
