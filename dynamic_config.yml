@@ -1,0 +1,26 @@
+http:
+  middlewares:
+    redirect-to-https:
+      redirectScheme:
+        scheme: https
+
+  routers:
+    main-router:
+      rule: "Host(`historyrewritten.tech`)"
+      service: main-service
+      entryPoints:
+        - web
+      middlewares:
+        - redirect-to-https
+    main-router-secure:
+      rule: "Host(`historyrewritten.tech`)"
+      service: main-service
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+  services:
+    main-service:
+      loadBalancer:
+        servers:
+          - url: "http://rewritten:5001"
