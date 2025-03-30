@@ -13,6 +13,7 @@ from flask_cors import CORS
 from api.media_generator import concatenate_videos, generate_scene_videos
 from api.producer_agent import generate_scene_prompts
 from api.writer_agent import generate_narrative
+from api.tts_agent import generate_speech
 from database.db import get_db, init_db
 
 # Load environment variables
@@ -157,10 +158,14 @@ def start_game():
         scene_prompts = generate_scene_prompts(new_narrative["narrative"])
         video_urls = generate_scene_videos(scene_prompts)
         combined_video_url = concatenate_videos(video_urls)
+        
+        # Generate audio for narrative
+        audio_url = generate_speech(new_narrative["narrative"])
 
         media_data = {
             "individual_videos": video_urls,
             "combined_video": combined_video_url,
+            "audio": audio_url
         }
 
         # Store in scene_cache for next time
@@ -203,6 +208,7 @@ def start_game():
             "session_id": session_id,
             "narrative": new_narrative,
             "media": media_data["combined_video"],
+            "audio": media_data.get("audio"),
             "cached": cached,
         }
     )
@@ -286,10 +292,14 @@ def make_decision():
         scene_prompts = generate_scene_prompts(new_narrative["narrative"])
         video_urls = generate_scene_videos(scene_prompts)
         combined_video_url = concatenate_videos(video_urls)
+        
+        # Generate audio for narrative
+        audio_url = generate_speech(new_narrative["narrative"])
 
         media_data = {
             "individual_videos": video_urls,
             "combined_video": combined_video_url,
+            "audio": audio_url
         }
 
         # Store in the cache
@@ -334,6 +344,7 @@ def make_decision():
         {
             "narrative": new_narrative,
             "media": media_data["combined_video"],
+            "audio": media_data.get("audio"),
             "cached": cached,
         }
     )
