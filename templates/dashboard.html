@@ -85,6 +85,30 @@
           <h2>Manage Assignments</h2>
           <button class="btn btn-outline-secondary" onclick="showTeacherPanel('home')">Back to Dashboard</button>
         </div>
+        
+        <!-- Add Create Assignment Form -->
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5 class="mb-0">Create New Assignment</h5>
+          </div>
+          <div class="card-body">
+            <form id="create-assignment-form">
+              <div class="mb-3">
+                <label for="assignment-title" class="form-label">Assignment Title</label>
+                <input type="text" class="form-control" id="assignment-title" required>
+              </div>
+              <div class="mb-3">
+                <label for="assignment-scenario" class="form-label">Select Scenario</label>
+                <select class="form-control" id="assignment-scenario" required>
+                  <!-- Options will be loaded dynamically -->
+                  <option value="" disabled selected>Loading scenarios...</option>
+                </select>
+              </div>
+              <button type="submit" class="btn btn-primary">Create Assignment</button>
+            </form>
+          </div>
+        </div>
+        
         <div class="card">
           <div class="card-header">
             <h5 class="mb-0">Your Assignments</h5>
@@ -350,6 +374,7 @@
   
   // Teacher: Load assignments
   function loadTeacherAssignments() {
+    // Load assignments list
     fetch('/api/assignments')
       .then(response => response.json())
       .then(data => {
@@ -391,6 +416,35 @@
         console.error('Error loading assignments:', error);
         document.getElementById('assignments-list').innerHTML = 
           '<div class="alert alert-danger">Error loading assignments. Please try again.</div>';
+      });
+      
+    // Load scenarios for the dropdown
+    fetch('/api/scenarios')
+      .then(response => response.json())
+      .then(data => {
+        const scenarioDropdown = document.getElementById('assignment-scenario');
+        
+        if (data.scenarios && data.scenarios.length > 0) {
+          // Clear the dropdown
+          scenarioDropdown.innerHTML = '';
+          
+          // Add each scenario as an option
+          data.scenarios.forEach(scenario => {
+            if (scenario !== "Apollo 11") { // Skip the unwanted Apollo 11 scenario
+              const option = document.createElement('option');
+              option.value = scenario;
+              option.textContent = scenario;
+              scenarioDropdown.appendChild(option);
+            }
+          });
+        } else {
+          scenarioDropdown.innerHTML = '<option value="" disabled>No scenarios available</option>';
+        }
+      })
+      .catch(error => {
+        console.error('Error loading scenarios:', error);
+        document.getElementById('assignment-scenario').innerHTML = 
+          '<option value="" disabled>Error loading scenarios</option>';
       });
   }
   

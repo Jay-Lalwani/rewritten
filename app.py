@@ -469,7 +469,10 @@ def get_scenarios():
     # Get distinct scenarios using SQLAlchemy
     scenarios = db.session.query(GameSession.scenario).distinct().all()
     scenario_list = [row[0] for row in scenarios]
-
+    
+    # Filter out the uppercase 'Apollo 11' scenario
+    scenario_list = [scenario for scenario in scenario_list if scenario != "Apollo 11"]
+    
     return jsonify({"scenarios": scenario_list})
 
 
