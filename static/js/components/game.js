@@ -11,10 +11,14 @@ const GameComponent = {
   narrativeText: null,
   decisionOptions: null,
   progressPath: null,
+  ttsButton: null,
+  narrativeAudio: null,
 
   // Game State
   currentScene: null,
   decisions: [],
+  isPlayingAudio: false,
+  isMuted: false,
 
   /**
    * Initialize the game component
@@ -28,6 +32,8 @@ const GameComponent = {
     this.narrativeText = Utils.getById('narrative-text');
     this.decisionOptions = Utils.getById('decision-options');
     this.progressPath = Utils.getById('progress-path');
+    this.ttsButton = Utils.getById('tts-button');
+    this.narrativeAudio = Utils.getById('narrative-audio');
 
     this.initEventListeners();
   },
@@ -38,11 +44,85 @@ const GameComponent = {
   initEventListeners: function() {
     // Video player events
     if (this.gameVideo) {
+      this.gameVideo.addEventListener('play', () => {
+        // Auto-play audio when video starts
+        this.playNarrativeAudio();
+      });
+      
       this.gameVideo.addEventListener('ended', () => {
         // Display decision options when video ends
         this.enableDecisions();
       });
     }
+
+    // TTS button events
+    if (this.ttsButton) {
+      this.ttsButton.addEventListener('click', () => {
+        this.toggleMute();
+      });
+    }
+
+    // Audio player events
+    if (this.narrativeAudio) {
+      this.narrativeAudio.addEventListener('ended', () => {
+        this.isPlayingAudio = false;
+        this.updateTtsButtonState();
+      });
+    }
+  },
+
+  /**
+   * Toggle audio mute state
+   */
+  toggleMute: function() {
+    this.isMuted = !this.isMuted;
+    
+    if (this.narrativeAudio) {
+      this.narrativeAudio.muted = this.isMuted;
+    }
+    
+    this.updateTtsButtonState();
+  },
+
+  /**
+   * Play narrative audio
+   */
+  playNarrativeAudio: function() {
+    if (!this.currentScene || !this.currentScene.narrative || !this.audioUrl) {
+      return;
+    }
+
+    // Set audio source if not already set
+    if (!this.narrativeAudio.getAttribute('data-scene-id') || 
+        this.narrativeAudio.getAttribute('data-scene-id') !== String(this.currentScene.scene_id)) {
+      this.narrativeAudio.src = this.audioUrl;
+      this.narrativeAudio.setAttribute('data-scene-id', this.currentScene.scene_id);
+    }
+    
+    // Set muted state based on user preference
+    this.narrativeAudio.muted = this.isMuted;
+    
+    // Play the audio
+    this.narrativeAudio.play().catch(error => {
+      console.error('Error playing narrative audio:', error);
+    });
+    
+    this.isPlayingAudio = true;
+    this.updateTtsButtonState();
+  },
+
+  /**
+   * Update TTS button state
+   */
+  updateTtsButtonState: function() {
+    if (this.isMuted) {
+      this.ttsButton.innerHTML = '<i class="fas fa-volume-mute"></i>';
+      this.ttsButton.title = "Unmute narrative";
+    } else {
+      this.ttsButton.innerHTML = '<i class="fas fa-volume-up"></i>';
+      this.ttsButton.title = "Mute narrative";
+    }
+    this.ttsButton.disabled = false;
   },
 
   /**
@@ -59,6 +139,7 @@ const GameComponent = {
       .then((data) => {
         // Save the current scene and initialize the game
         this.currentScene = data.narrative;
+        this.audioUrl = data.audio;
 
         // Set video source
         this.gameVideo.src = data.media;
@@ -90,6 +171,16 @@ const GameComponent = {
     // Update the narrative text
     if (this.narrativeText && this.currentScene) {
       this.narrativeText.textContent = this.currentScene.narrative;
+    }
+
+    // Reset audio state for new narrative
+    if (this.narrativeAudio) {
+      this.narrativeAudio.pause();
+      this.narrativeAudio.currentTime = 0;
+      this.narrativeAudio.removeAttribute('src');
+      this.narrativeAudio.removeAttribute('data-scene-id');
+      this.isPlayingAudio = false;
+      this.updateTtsButtonState();
     }
 
     // Clear existing decision options
@@ -159,6 +250,7 @@ const GameComponent = {
       .then((data) => {
         // Update current scene
         this.currentScene = data.narrative;
+        this.audioUrl = data.audio;
 
         // Update video
         this.gameVideo.src = data.media;

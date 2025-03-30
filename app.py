@@ -15,6 +15,7 @@ from api.producer_agent import generate_scene_prompts
 from api.writer_agent import generate_narrative
 from database.models import db, Session as GameSession, NarrativeData, ScenePrompt, MediaUrl, SceneCache, Teacher, Student
 import database
+from api.tts_agent import generate_speech
 
 # Load environment variables
 load_dotenv()
@@ -252,10 +253,14 @@ def start_game():
         scene_prompts = generate_scene_prompts(new_narrative["narrative"])
         video_urls = generate_scene_videos(scene_prompts)
         combined_video_url = concatenate_videos(video_urls)
+        
+        # Generate audio for narrative
+        audio_url = generate_speech(new_narrative["narrative"])
 
         media_data = {
             "individual_videos": video_urls,
             "combined_video": combined_video_url,
+            "audio": audio_url
         }
 
         # Store in scene_cache for next time
@@ -302,6 +307,7 @@ def start_game():
             "session_id": session_id,
             "narrative": new_narrative,
             "media": media_data["combined_video"],
+            "audio": media_data.get("audio"),
             "cached": cached,
         }
     )
@@ -377,10 +383,14 @@ def make_decision():
         scene_prompts = generate_scene_prompts(next_narrative["narrative"])
         video_urls = generate_scene_videos(scene_prompts)
         combined_video_url = concatenate_videos(video_urls)
+        
+        # Generate audio for narrative
+        audio_url = generate_speech(new_narrative["narrative"])
 
         media_data = {
             "individual_videos": video_urls,
             "combined_video": combined_video_url,
+            "audio": audio_url
         }
 
         # Save to cache for future reuse
@@ -435,6 +445,7 @@ def make_decision():
             "session_id": session_id,
             "narrative": next_narrative,
             "media": media_data["combined_video"],
+            "audio": media_data.get("audio"),
             "cached": cached,
         }
     )
