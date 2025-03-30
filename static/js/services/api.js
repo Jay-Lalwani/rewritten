@@ -97,6 +97,19 @@ const ApiService = {
   },
 
   /**
+   * Get a random quiz question
+   * @returns {Promise} Promise resolving to quiz question data
+   */
+  getQuizQuestion: function() {
+    return fetch('/api/quiz')
+      .then(response => response.json())
+      .catch(error => {
+        console.error('Error getting quiz question:', error);
+        throw error;
+      });
+  },
+
+  /**
    * Get progress information
    * @returns {Promise} Promise resolving to progress data
    */

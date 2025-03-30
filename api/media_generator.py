@@ -116,7 +116,7 @@ def generate_video(first_frame_url, video_prompt):
         while True:
             output = client.tasks.retrieve(id=task.id)
             if output.status in {"SUCCEEDED", "FAILED", "CANCELLED", "THROTTLED"}:
-                break
+               break
             time.sleep(0.5)
             print(".", end="", flush=True)
         

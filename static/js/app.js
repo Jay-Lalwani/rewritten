@@ -7,6 +7,7 @@ document.addEventListener("DOMContentLoaded", function () {
   // Initialize components
   GameComponent.init();
   ScenarioComponent.init();
+  QuizComponent.init();
   
   // Set up any additional event listeners or app-wide functionality
   setupAppEventListeners();
