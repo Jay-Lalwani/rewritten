@@ -21,6 +21,8 @@ from database.models import (
     SceneCache,
     Teacher,
     Student,
+    Assignment,
+    student_assignment_progress,
 )
 import database
 from api.tts_agent import generate_speech
@@ -542,6 +544,236 @@ def get_quiz():
         print(f"Error generating quiz question: {e}")
         # Fall back to static questions if generation fails
         return jsonify({"question": get_fallback_question()})
+
+
+# --------------------------
+# Assignment Management APIs
+# --------------------------
+import random
+import string
+
+def generate_access_code(length=6):
+    """Generate a random access code for assignments"""
+    characters = string.ascii_uppercase + string.digits
+    while True:
+        code = ''.join(random.choice(characters) for _ in range(length))
+        # Check if code already exists
+        existing = Assignment.query.filter_by(access_code=code).first()
+        if not existing:
+            return code
+
+
+@app.route("/api/assignments", methods=["POST"])
+@requires_auth
+def create_assignment():
+    """Create a new assignment with a scenario"""
+    if session.get("user_type") != "teacher":
+        return jsonify({"error": "Only teachers can create assignments"}), 403
+    
+    teacher_id = session.get("user_id")
+    
+    # For now, hardcode the scenario to Apollo 11
+    scenario = "Apollo 11"
+    title = request.json.get("title", f"Assignment: {scenario}")
+    class_id = request.json.get("class_id")  # Optional
+    
+    # Generate a unique access code
+    access_code = generate_access_code()
+    
+    # Create the assignment
+    assignment = Assignment(
+        title=title,
+        scenario=scenario,
+        access_code=access_code,
+        teacher_id=teacher_id,
+        class_id=class_id
+    )
+    
+    db.session.add(assignment)
+    db.session.commit()
+    
+    return jsonify({
+        "success": True, 
+        "assignment": {
+            "id": assignment.id,
+            "title": assignment.title,
+            "scenario": assignment.scenario,
+            "access_code": assignment.access_code
+        }
+    })
+
+
+@app.route("/api/assignments", methods=["GET"])
+@requires_auth
+def get_teacher_assignments():
+    """Get all assignments for the current teacher"""
+    if session.get("user_type") != "teacher":
+        return jsonify({"error": "Only teachers can view their assignments"}), 403
+    
+    teacher_id = session.get("user_id")
+    assignments = Assignment.query.filter_by(teacher_id=teacher_id).all()
+    
+    assignment_list = []
+    for assignment in assignments:
+        # Count enrolled students
+        student_count = db.session.query(student_assignment_progress).filter_by(
+            assignment_id=assignment.id).count()
+            
+        assignment_list.append({
+            "id": assignment.id,
+            "title": assignment.title,
+            "scenario": assignment.scenario,
+            "access_code": assignment.access_code,
+            "created_at": assignment.created_at.isoformat(),
+            "student_count": student_count,
+            "is_active": assignment.is_active,
+            "class_name": assignment.class_.name if assignment.class_ else None
+        })
+    
+    return jsonify({"assignments": assignment_list})
+
+
+@app.route("/api/assignments/<assignment_id>", methods=["GET"])
+@requires_auth
+def get_assignment_details(assignment_id):
+    """Get details of a specific assignment including student progress"""
+    if session.get("user_type") != "teacher":
+        return jsonify({"error": "Only teachers can view assignment details"}), 403
+    
+    teacher_id = session.get("user_id")
+    assignment = Assignment.query.filter_by(id=assignment_id, teacher_id=teacher_id).first()
+    
+    if not assignment:
+        return jsonify({"error": "Assignment not found"}), 404
+    
+    # Get all students enrolled in this assignment
+    student_progress = db.session.query(
+        Student, student_assignment_progress
+    ).join(
+        student_assignment_progress, 
+        Student.id == student_assignment_progress.c.student_id
+    ).filter(
+        student_assignment_progress.c.assignment_id == assignment_id
+    ).all()
+    
+    students_data = []
+    for student, progress in student_progress:
+        students_data.append({
+            "id": student.id,
+            "name": student.name,
+            "email": student.email,
+            "completed": progress.completed,
+            "score": progress.score,
+            "last_scene_id": progress.last_scene_id,
+            "last_updated": progress.updated_at.isoformat()
+        })
+    
+    return jsonify({
+        "assignment": {
+            "id": assignment.id,
+            "title": assignment.title,
+            "scenario": assignment.scenario,
+            "access_code": assignment.access_code,
+            "created_at": assignment.created_at.isoformat(),
+            "is_active": assignment.is_active,
+            "class_name": assignment.class_.name if assignment.class_ else None,
+            "students": students_data
+        }
+    })
+
+
+@app.route("/api/join-assignment", methods=["POST"])
+@requires_auth
+def join_assignment():
+    """Allow a student to join an assignment using an access code"""
+    if session.get("user_type") != "student":
+        return jsonify({"error": "Only students can join assignments"}), 403
+    
+    student_id = session.get("user_id")
+    access_code = request.json.get("access_code")
+    
+    if not access_code:
+        return jsonify({"error": "Access code is required"}), 400
+    
+    # Find the assignment by access code
+    assignment = Assignment.query.filter_by(access_code=access_code, is_active=True).first()
+    
+    if not assignment:
+        return jsonify({"error": "Invalid or expired access code"}), 404
+    
+    # Check if student is already enrolled
+    existing = db.session.query(student_assignment_progress).filter_by(
+        student_id=student_id, assignment_id=assignment.id).first()
+    
+    if existing:
+        return jsonify({"error": "You're already enrolled in this assignment"}), 409
+    
+    # Enroll the student
+    stmt = student_assignment_progress.insert().values(
+        student_id=student_id,
+        assignment_id=assignment.id
+    )
+    db.session.execute(stmt)
+    db.session.commit()
+    
+    # Start a game session for this scenario
+    session_id = str(uuid.uuid4())
+    game_session = GameSession(
+        id=session_id,
+        scenario=assignment.scenario,
+        current_scene_id=0
+    )
+    db.session.add(game_session)
+    db.session.commit()
+    
+    # Store the session ID
+    session["session_id"] = session_id
+    
+    return jsonify({
+        "success": True,
+        "assignment": {
+            "id": assignment.id,
+            "title": assignment.title,
+            "scenario": assignment.scenario,
+            "teacher_name": assignment.teacher.name
+        },
+        "session_id": session_id
+    })
+
+
+@app.route("/api/student/assignments", methods=["GET"])
+@requires_auth
+def get_student_assignments():
+    """Get all assignments for the current student"""
+    if session.get("user_type") != "student":
+        return jsonify({"error": "Only students can view their assignments"}), 403
+    
+    student_id = session.get("user_id")
+    
+    # Query assignments the student is enrolled in
+    assignments = db.session.query(
+        Assignment, student_assignment_progress
+    ).join(
+        student_assignment_progress,
+        Assignment.id == student_assignment_progress.c.assignment_id
+    ).filter(
+        student_assignment_progress.c.student_id == student_id
+    ).all()
+    
+    assignment_list = []
+    for assignment, progress in assignments:
+        assignment_list.append({
+            "id": assignment.id,
+            "title": assignment.title,
+            "scenario": assignment.scenario,
+            "teacher_name": assignment.teacher.name,
+            "class_name": assignment.class_.name if assignment.class_ else None,
+            "completed": progress.completed,
+            "score": progress.score,
+            "last_scene_id": progress.last_scene_id
+        })
+    
+    return jsonify({"assignments": assignment_list})
 
 
 if __name__ == "__main__":

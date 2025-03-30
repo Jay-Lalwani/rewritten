@@ -275,3 +275,42 @@ class ClassVideo(db.Model):
 
     def __repr__(self):
         return f"<ClassVideo {self.id}: {self.title}>"
+
+
+# Association table for tracking student progress on assignments
+student_assignment_progress = db.Table(
+    "student_assignment_progress",
+    db.Column("student_id", db.Integer, db.ForeignKey("students.id"), primary_key=True),
+    db.Column("assignment_id", db.Integer, db.ForeignKey("assignments.id"), primary_key=True),
+    db.Column("completed", db.Boolean, default=False),
+    db.Column("score", db.Integer, nullable=True),
+    db.Column("last_scene_id", db.Integer, default=0),
+    db.Column("created_at", db.DateTime, default=datetime.utcnow),
+    db.Column("updated_at", db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+)
+
+
+class Assignment(db.Model):
+    __tablename__ = "assignments"
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    title = db.Column(db.String(200), nullable=False)
+    scenario = db.Column(db.String(100), nullable=False)
+    access_code = db.Column(db.String(10), unique=True, nullable=False)
+    teacher_id = db.Column(db.Integer, db.ForeignKey("teachers.id"), nullable=False)
+    class_id = db.Column(db.Integer, db.ForeignKey("classes.id"), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    due_date = db.Column(db.DateTime, nullable=True)
+    is_active = db.Column(db.Boolean, default=True)
+
+    # Relationships
+    teacher = relationship("Teacher", backref="assignments")
+    class_ = relationship("Class", backref="assignments")
+    students = relationship(
+        "Student", 
+        secondary=student_assignment_progress, 
+        backref="assignments"
+    )
+
+    def __repr__(self):
+        return f"<Assignment {self.id}: {self.title} ({self.access_code})>"
