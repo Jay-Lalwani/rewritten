@@ -57,7 +57,7 @@ def migrate_old_to_new(app):
                 # Check if this session already exists in the new database
                 existing = Session.query.get(session_data['id'])
                 if existing:
-                    print(f"Session {session_data['id']} already exists in new database. Skipping.")
+                    # print(f"Session {session_data['id']} already exists in new database. Skipping.")
                     continue
                 
                 # Create new session object
