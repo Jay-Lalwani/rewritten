@@ -16,11 +16,9 @@ from api.writer_agent import generate_narrative
 from database.models import db, Session as GameSession, NarrativeData, ScenePrompt, MediaUrl, SceneCache, Teacher, Student
 import database
 from api.tts_agent import generate_speech
-<<<<<<< HEAD
-=======
 from api.quiz_agent import generate_quiz_question, get_fallback_question
-from database.db import get_db, init_db
->>>>>>> 0298bd1 (added questions and question pre generation)
+# Keep import to get_db for legacy code that still uses it
+from database.db import get_db
 
 # Load environment variables
 load_dotenv()

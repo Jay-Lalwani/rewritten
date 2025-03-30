@@ -1,7 +1,8 @@
 # Database package initialization 
 import os
 from flask import Flask
-from .models import db
+from .models import db as sqlalchemy_db
+from .db import init_db, close_db
 
 def init_app(app: Flask):
     """Initialize the application with SQLAlchemy database."""
@@ -19,10 +20,17 @@ def init_app(app: Flask):
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     
     # Initialize SQLAlchemy
-    db.init_app(app)
+    sqlalchemy_db.init_app(app)
+    
+    # Register the close_db function to be called when cleaning up after a request
+    app.teardown_appcontext(close_db)
     
     with app.app_context():
-        db.create_all()
+        # Create SQLAlchemy tables
+        sqlalchemy_db.create_all()
+        
+        # Initialize legacy SQLite tables
+        init_db()
         
         # Check if we need to migrate data from old format
         if needs_migration():
