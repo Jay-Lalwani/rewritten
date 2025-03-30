@@ -13,7 +13,7 @@ from flask_cors import CORS
 from api.media_generator import concatenate_videos, generate_scene_videos
 from api.producer_agent import generate_scene_prompts
 from api.writer_agent import generate_narrative
-from database.models import db, Session as GameSession, NarrativeData, ScenePrompt, MediaUrl, SceneCache
+from database.models import db, Session as GameSession, NarrativeData, ScenePrompt, MediaUrl, SceneCache, Teacher, Student
 import database
 
 # Load environment variables
@@ -25,6 +25,10 @@ app.secret_key = os.environ.get("APP_SECRET_KEY", "fallback-secret-key")
 
 # Initialize database with SQLAlchemy
 database.init_app(app)
+
+# Add Flask-Migrate support
+from flask_migrate import Migrate
+migrate = Migrate(app, db)
 
 # ---------------------
 # 2. Setup OAuth Client
@@ -67,6 +71,10 @@ def login():
     """
     Redirects the user to Auth0's hosted login page.
     """
+    # Store the role in session for later use
+    role = request.args.get("role", "student")
+    session["pending_role"] = role
+    
     return oauth.auth0.authorize_redirect(
         redirect_uri=url_for("callback", _external=True)
     )
@@ -80,7 +88,101 @@ def callback():
     """
     token = oauth.auth0.authorize_access_token()
     session["user"] = token
-    return redirect(url_for("index"))  # or any route you want after login
+    
+    # Get user details from Auth0
+    userinfo = token.get("userinfo", {})
+    auth0_id = userinfo.get("sub")
+    email = userinfo.get("email", "")
+    name = userinfo.get("name", "")
+    
+    # Get the pending role from session
+    role = session.pop("pending_role", None)
+    
+    # Check if user exists in our database
+    teacher = Teacher.query.filter_by(auth0_id=auth0_id).first()
+    student = Student.query.filter_by(auth0_id=auth0_id).first()
+    
+    if teacher:
+        # Existing teacher
+        session["user_type"] = "teacher"
+        session["user_id"] = teacher.id
+        return redirect(url_for("teacher_dashboard"))
+        
+    elif student:
+        # Existing student
+        session["user_type"] = "student"
+        session["user_id"] = student.id
+        return redirect(url_for("student_dashboard"))
+        
+    else:
+        # New user - create based on role selection
+        if role == "teacher":
+            new_teacher = Teacher(
+                name=name,
+                email=email,
+                auth0_id=auth0_id,
+                password=""  # Empty since Auth0 handles authentication
+            )
+            db.session.add(new_teacher)
+            db.session.commit()
+            
+            session["user_type"] = "teacher"
+            session["user_id"] = new_teacher.id
+            return redirect(url_for("teacher_dashboard"))
+            
+        elif role == "student":
+            new_student = Student(
+                name=name,
+                email=email,
+                auth0_id=auth0_id,
+                grade_level=0  # Default value
+            )
+            db.session.add(new_student)
+            db.session.commit()
+            
+            session["user_type"] = "student"
+            session["user_id"] = new_student.id
+            return redirect(url_for("student_dashboard"))
+    
+    # Default fallback
+    return redirect(url_for("index"))
+
+
+@app.route("/")
+def index():
+    """Render the role selection page."""
+    if "user" in session and "user_type" in session:
+        # If already logged in, redirect to appropriate dashboard
+        if session["user_type"] == "teacher":
+            return redirect(url_for("teacher_dashboard"))
+        elif session["user_type"] == "student":
+            return redirect(url_for("student_dashboard"))
+    
+    return render_template("role_select.html")
+
+
+@app.route("/teacher/dashboard")
+@requires_auth
+def teacher_dashboard():
+    if session.get("user_type") != "teacher":
+        return redirect(url_for("index"))
+        
+    teacher_id = session.get("user_id")
+    teacher = Teacher.query.get(teacher_id)
+    
+    return render_template("teacher_dashboard.html", teacher=teacher)
+
+
+@app.route("/student/dashboard")
+@requires_auth
+def student_dashboard():
+    if session.get("user_type") != "student":
+        return redirect(url_for("index"))
+        
+    student_id = session.get("user_id")
+    student = Student.query.get(student_id)
+    
+    return render_template("student_dashboard.html", student=student)
 
 
 @app.route("/logout")
@@ -96,13 +198,6 @@ def logout():
         f"https://{auth0_domain}/v2/logout?"
         f"returnTo={url_for('index', _external=True)}&client_id={client_id}"
     )
-
-
-@app.route("/")
-# @requires_auth  # Auth0 authentication required
-def index():
-    """Render the main game page."""
-    return render_template("index.html")
 
 
 @app.route("/api/start", methods=["POST"])
@@ -414,4 +509,4 @@ def delete_scenario(scenario_name):
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    app.run(debug=True, port=5001)

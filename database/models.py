@@ -160,4 +160,77 @@ class Video(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     def __repr__(self):
-        return f"<Video {self.id}: {self.url_path}>" 
+        return f"<Video {self.id}: {self.url_path}>"
+
+# Association table for students and classes
+student_class_association = db.Table('student_class',
+    db.Column('student_id', db.Integer, db.ForeignKey('students.id'), primary_key=True),
+    db.Column('class_id', db.Integer, db.ForeignKey('classes.id'), primary_key=True)
+)
+
+class Teacher(db.Model):
+    __tablename__ = 'teachers'
+    
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(100), unique=True, nullable=False)
+    password = db.Column(db.String(255), nullable=False)
+    auth0_id = db.Column(db.String(100), unique=True, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    classes = relationship("Class", back_populates="teacher")
+    
+    def __repr__(self):
+        return f"<Teacher {self.id}: {self.name}>"
+
+class Student(db.Model):
+    __tablename__ = 'students'
+    
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(100), unique=True, nullable=False)
+    grade_level = db.Column(db.Integer)
+    auth0_id = db.Column(db.String(100), unique=True, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships defined through the association table
+    classes = relationship("Class", secondary=student_class_association, 
+                          back_populates="students")
+    
+    def __repr__(self):
+        return f"<Student {self.id}: {self.name}>"
+
+class Class(db.Model):
+    __tablename__ = 'classes'
+    
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    name = db.Column(db.String(100), nullable=False)
+    subject = db.Column(db.String(100))
+    description = db.Column(db.Text)
+    teacher_id = db.Column(db.Integer, db.ForeignKey('teachers.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    teacher = relationship("Teacher", back_populates="classes")
+    students = relationship("Student", secondary=student_class_association,
+                           back_populates="classes")
+    videos = relationship("ClassVideo", back_populates="class_")
+    
+    def __repr__(self):
+        return f"<Class {self.id}: {self.name}>"
+
+class ClassVideo(db.Model):
+    __tablename__ = 'class_videos'
+    
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    class_id = db.Column(db.Integer, db.ForeignKey('classes.id'), nullable=False)
+    video_id = db.Column(db.Integer, db.ForeignKey('videos.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    class_ = relationship("Class", back_populates="videos")
+    video = relationship("Video")
+    
+    def __repr__(self):
+        return f"<ClassVideo {self.id}: {self.title}>" 
