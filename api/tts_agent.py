@@ -43,7 +43,7 @@ def generate_speech(text, voice_id="21m00Tcm4TlvDq8ikWAM"):
             "voice_settings": {
                 "stability": 0.5,
                 "similarity_boost": 0.5,
-                "speed": 1.2
+                "speed": 1.1
             }
         }
         
