@@ -70,14 +70,20 @@ const ScenarioComponent = {
     const scenarioCol = Utils.createElement("div", {
       className: "col-lg-6 col-md-8 mb-4",
     });
+    
+    // Check if user is a teacher (for delete button visibility)
+    const isTeacher = document.body.getAttribute('data-user-type') === 'teacher';
+    
     scenarioCol.innerHTML = `
       <div class="card scenario-card" data-scenario="${scenario}">
         <div class="card-body">
           <div class="scenario-icon"><i class="fas fa-landmark"></i></div>
           <h5 class="card-title">${scenario}</h5>
+          ${isTeacher ? `
           <button class="btn btn-sm btn-danger delete-scenario" data-scenario="${scenario}">
             <i class="fas fa-trash-alt"></i>
           </button>
+          ` : ''}
         </div>
       </div>
     `;
@@ -92,13 +98,15 @@ const ScenarioComponent = {
       }
     });
 
-    // Add delete event
+    // Add delete event if delete button exists
     const deleteBtn = scenarioCol.querySelector(".delete-scenario");
-    deleteBtn.addEventListener("click", (e) => {
-      e.stopPropagation(); // Prevent the card click event
-      const scenarioName = e.currentTarget.getAttribute("data-scenario");
-      this.deleteScenario(scenarioName);
-    });
+    if (deleteBtn) {
+      deleteBtn.addEventListener("click", (e) => {
+        e.stopPropagation(); // Prevent the card click event
+        const scenarioName = e.currentTarget.getAttribute("data-scenario");
+        this.deleteScenario(scenarioName);
+      });
+    }
 
     this.scenarioContainer.appendChild(scenarioCol);
   },

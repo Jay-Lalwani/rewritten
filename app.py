@@ -495,10 +495,15 @@ def add_scenario():
 
 
 @app.route("/api/scenarios/<scenario_name>", methods=["DELETE"])
+@requires_auth
 def delete_scenario(scenario_name):
     """Delete a scenario from the database."""
     if not scenario_name:
         return jsonify({"error": "No scenario name provided"}), 400
+        
+    # Only teachers can delete scenarios
+    if session.get("user_type") != "teacher":
+        return jsonify({"error": "Only teachers can delete scenarios"}), 403
 
     # Delete scenario sessions using SQLAlchemy
     GameSession.query.filter_by(scenario=scenario_name).delete()
