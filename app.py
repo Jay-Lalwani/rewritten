@@ -117,13 +117,13 @@ def callback():
         # Existing teacher
         session["user_type"] = "teacher"
         session["user_id"] = teacher.id
-        return redirect(url_for("teacher_dashboard"))
+        return redirect(url_for("dashboard"))  # Redirect to unified dashboard
 
     elif student:
         # Existing student
         session["user_type"] = "student"
         session["user_id"] = student.id
-        return redirect(url_for("student_dashboard"))
+        return redirect(url_for("dashboard"))  # Redirect to unified dashboard
 
     else:
         # New user - create based on role selection
@@ -139,7 +139,7 @@ def callback():
 
             session["user_type"] = "teacher"
             session["user_id"] = new_teacher.id
-            return redirect(url_for("teacher_dashboard"))
+            return redirect(url_for("dashboard"))  # Redirect to unified dashboard
 
         elif role == "student":
             new_student = Student(
@@ -153,7 +153,7 @@ def callback():
 
             session["user_type"] = "student"
             session["user_id"] = new_student.id
-            return redirect(url_for("student_dashboard"))
+            return redirect(url_for("dashboard"))  # Redirect to unified dashboard
 
     # Default fallback
     return redirect(url_for("index"))
@@ -163,11 +163,8 @@ def callback():
 def index():
     """Render the role selection page."""
     if "user" in session and "user_type" in session:
-        # If already logged in, redirect to appropriate dashboard
-        if session["user_type"] == "teacher":
-            return redirect(url_for("teacher_dashboard"))
-        elif session["user_type"] == "student":
-            return redirect(url_for("student_dashboard"))
+        # If already logged in, redirect to the unified dashboard
+        return redirect(url_for("dashboard"))
 
     return render_template("role_select.html")
 
@@ -178,28 +175,22 @@ def view_scenarios():
     return render_template("index.html")
 
 
-@app.route("/teacher/dashboard")
+@app.route("/dashboard")
 @requires_auth
-def teacher_dashboard():
-    if session.get("user_type") != "teacher":
+def dashboard():
+    """Unified dashboard for both teachers and students."""
+    user_type = session.get("user_type")
+    user_id = session.get("user_id")
+    
+    if user_type == "teacher":
+        teacher = Teacher.query.get(user_id)
+        return render_template("dashboard.html", user=teacher, user_type="teacher")
+    elif user_type == "student":
+        student = Student.query.get(user_id)
+        return render_template("dashboard.html", user=student, user_type="student")
+    else:
+        # If user type is not recognized, redirect to index
         return redirect(url_for("index"))
-
-    teacher_id = session.get("user_id")
-    teacher = Teacher.query.get(teacher_id)
-
-    return render_template("teacher_dashboard.html", teacher=teacher)
-
-
-@app.route("/student/dashboard")
-@requires_auth
-def student_dashboard():
-    if session.get("user_type") != "student":
-        return redirect(url_for("index"))
-
-    student_id = session.get("user_id")
-    student = Student.query.get(student_id)
-
-    return render_template("student_dashboard.html", student=student)
 
 
 @app.route("/logout")

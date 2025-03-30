@@ -1,0 +1,150 @@
+{% extends 'layouts/base.html' %}
+
+{% block title %}
+{% if user_type == 'teacher' %}Teacher{% else %}Student{% endif %} Dashboard
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-5">
+  <div class="row">
+    <!-- Sidebar -->
+    <div class="col-md-3 col-lg-2 bg-light sidebar p-4">
+      <h5 class="mb-4">Dashboard</h5>
+      
+      <div class="list-group mb-4">
+        <a href="#" class="list-group-item list-group-item-action active">Home</a>
+        <a href="/view-scenarios" class="list-group-item list-group-item-action">Explore Scenarios</a>
+        
+        {% if user_type == 'teacher' %}
+        <!-- Teacher-specific sidebar items -->
+        <a href="#" class="list-group-item list-group-item-action">Story Gallery</a>
+        <a href="#" class="list-group-item list-group-item-action">Manage Classes</a>
+        <a href="#" class="list-group-item list-group-item-action">Track Progress</a>
+        {% else %}
+        <!-- Student-specific sidebar items -->
+        <a href="#" class="list-group-item list-group-item-action">Join Class</a>
+        <a href="#" class="list-group-item list-group-item-action">My Progress</a>
+        <a href="#" class="list-group-item list-group-item-action">Achievements</a>
+        {% endif %}
+      </div>
+      
+      <div class="user-info mt-auto">
+        <p class="mb-1"><strong>Welcome, {{ user.name }}</strong></p>
+        <small class="text-muted">{{ 'Teacher' if user_type == 'teacher' else 'Student' }}</small>
+      </div>
+    </div>
+    
+    <!-- Main content -->
+    <div class="col-md-9 col-lg-10 main-content p-4">
+      <h1 class="mb-4">{% if user_type == 'teacher' %}Teacher{% else %}Student{% endif %} Dashboard</h1>
+      
+      <div class="card mb-4">
+        <div class="card-body">
+          <h5 class="card-title">Welcome, {{ user.name }}</h5>
+          <p class="card-text">You are logged in as a {{ 'teacher' if user_type == 'teacher' else 'student' }}.</p>
+        </div>
+      </div>
+      
+      {% if user_type == 'teacher' %}
+      <!-- Teacher-specific content -->
+      <div class="row">
+        <div class="col-md-6">
+          <div class="card mb-4">
+            <div class="card-header">
+              <h5 class="mb-0">Your Classes</h5>
+            </div>
+            <div class="card-body">
+              {% if user.classes %}
+                <div class="list-group">
+                  {% for class in user.classes %}
+                    <div class="list-group-item">
+                      <h5>{{ class.name }}</h5>
+                      <p>{{ class.subject }}</p>
+                      <small>{{ class.students|length }} students</small>
+                    </div>
+                  {% endfor %}
+                </div>
+              {% else %}
+                <p>You don't have any classes yet.</p>
+                <a href="#" class="btn btn-primary">Create a class</a>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="card mb-4">
+            <div class="card-header">
+              <h5 class="mb-0">Story Gallery</h5>
+            </div>
+            <div class="card-body">
+              <p>Create and manage historical scenarios for your students.</p>
+              <a href="/view-scenarios" class="btn btn-outline-primary">Explore Scenarios</a>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {% else %}
+      <!-- Student-specific content -->
+      <div class="row">
+        <div class="col-md-6">
+          <div class="card mb-4">
+            <div class="card-header">
+              <h5 class="mb-0">Your Classes</h5>
+            </div>
+            <div class="card-body">
+              {% if user.classes %}
+                <div class="list-group">
+                  {% for class in user.classes %}
+                    <div class="list-group-item">
+                      <h5>{{ class.name }}</h5>
+                      <p>{{ class.subject }}</p>
+                      <small>Teacher: {{ class.teacher.name }}</small>
+                    </div>
+                  {% endfor %}
+                </div>
+              {% else %}
+                <p>You're not enrolled in any classes yet.</p>
+                <a href="#" class="btn btn-primary">Join a class</a>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="card mb-4">
+            <div class="card-header">
+              <h5 class="mb-0">Recent Scenarios</h5>
+            </div>
+            <div class="card-body">
+              <p>Explore historical scenarios and make decisions that reshape history.</p>
+              <a href="/view-scenarios" class="btn btn-outline-primary">Start Learning</a>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .sidebar {
+    min-height: calc(100vh - 120px);
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .main-content {
+    min-height: calc(100vh - 120px);
+  }
+  
+  @media (max-width: 768px) {
+    .sidebar {
+      min-height: auto;
+      margin-bottom: 20px;
+    }
+  }
+</style>
+{% endblock %} 
