@@ -42,27 +42,118 @@ footer {
 /* Header Styling */
 header {
   background-color: var(--dark-color);
+  background-image: linear-gradient(135deg, #2b2d42 0%, #121420 100%);
   color: var(--light-color);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  padding: 2rem 0;
+  box-shadow: 0 6px 30px rgba(0, 0, 0, 0.25);
+  padding: 2.8rem 0 2.2rem;
+  position: relative;
+  overflow: hidden;
+  z-index: 10;
+}
+
+header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--secondary-color), var(--accent-color));
+  z-index: 2;
+}
+
+header::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -10%;
+  width: 60%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0) 70%);
+  transform: rotate(15deg);
+  z-index: 1;
+  pointer-events: none;
 }
 
 .game-title {
-  font-family: "Playfair Display", serif;
-  font-size: 3.5rem;
+  font-family: 'Sora', 'Arial', sans-serif;
+  font-size: 3.6rem;
   font-weight: 700;
   color: var(--light-color);
   margin-bottom: 0.5rem;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-  letter-spacing: 2px;
+  text-shadow: 0 5px 15px rgba(0, 0, 0, 0.35);
+  letter-spacing: 1.5px;
+  position: relative;
+  display: inline-block;
+  background: linear-gradient(to right, #ffffff 0%, rgba(255,255,255,0.9) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: titleGlow 5s ease-in-out infinite alternate;
+}
+
+@keyframes titleGlow {
+  0% {
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+  }
+  100% {
+    text-shadow: 0 0 20px rgba(255, 255, 255, 0.3), 0 0 40px rgba(255, 255, 255, 0.1);
+  }
+}
+
+.game-title::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 45%;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--secondary-color), transparent);
+  border-radius: 3px;
+  opacity: 0.8;
 }
 
 .game-subtitle {
-  font-size: 1.5rem;
-  color: var(--secondary-color);
-  font-weight: 300;
-  font-style: italic;
-  opacity: 0.9;
+  font-family: 'Space Grotesk', 'Helvetica Neue', sans-serif;
+  font-size: 1.35rem;
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 400;
+  margin-top: 0.8rem;
+  letter-spacing: 2px;
+  position: relative;
+  opacity: 0.85;
+  text-transform: uppercase;
+}
+
+.position-absolute.top-0.end-0.m-3 {
+  z-index: 100;
+}
+
+.position-absolute.top-0.end-0.m-3 .btn {
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: white;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.position-absolute.top-0.end-0.m-3 .btn:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+}
+
+@media (max-width: 992px) {
+  .game-title {
+    font-size: 2.8rem;
+  }
+
+  .game-subtitle {
+    font-size: 1.2rem;
+    letter-spacing: 1.5px;
+  }
 }
 
 /* Game Container Layout */

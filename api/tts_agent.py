@@ -9,7 +9,7 @@ load_dotenv()
 # Get ElevenLabs API key from environment variables
 ELEVEN_LABS_API_KEY = os.environ.get("ELEVEN_LABS_API_KEY")
 
-def generate_speech(text, voice_id="21m00Tcm4TlvDq8ikWAM"):
+def generate_speech(text, voice_id="nPczCjzI2devNBz1zQrb"):
     """
     Generate speech using ElevenLabs API
     
@@ -43,7 +43,7 @@ def generate_speech(text, voice_id="21m00Tcm4TlvDq8ikWAM"):
             "voice_settings": {
                 "stability": 0.5,
                 "similarity_boost": 0.5,
-                "speed": 1.1
+                "speed": 1.0
             }
         }
         

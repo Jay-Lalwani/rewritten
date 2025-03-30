@@ -17,8 +17,6 @@ from database.models import db, Session as GameSession, NarrativeData, SceneProm
 import database
 from api.tts_agent import generate_speech
 from api.quiz_agent import generate_quiz_question, get_fallback_question
-# Keep import to get_db for legacy code that still uses it
-from database.db import get_db
 
 # Load environment variables
 load_dotenv()
@@ -527,7 +525,6 @@ def delete_scenario(scenario_name):
         {"success": True, "message": f'Scenario "{scenario_name}" deleted successfully'}
     )
 
-
 @app.route("/api/quiz", methods=["GET"])
 def get_quiz():
     """Get a dynamic quiz question related to the current scenario/narrative."""
@@ -560,6 +557,7 @@ def get_quiz():
         print(f"Error generating quiz question: {e}")
         # Fall back to static questions if generation fails
         return jsonify({"question": get_fallback_question()})
+
 
 
 if __name__ == "__main__":
