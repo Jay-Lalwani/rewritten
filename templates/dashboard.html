@@ -21,11 +21,6 @@
           <i class="fas fa-home me-2"></i> Home
         </a>
         {% endif %}
-        {% if user_type == 'student' %}
-        <a href="/student/assignments" class="list-group-item list-group-item-action">
-          <i class="fas fa-tasks me-2"></i> My Assignments
-        </a>
-        {% endif %}
         {% if user_type == 'teacher' %}
         <!-- Teacher-specific sidebar items -->
         <a href="#" class="list-group-item list-group-item-action" onclick="showTeacherPanel('story-gallery')">

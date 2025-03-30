@@ -3,30 +3,43 @@
 {% block title %}Choose Your Role - Education Platform{% endblock %}
 
 {% block content %}
-<div class="container text-center py-5">
+<div class="container py-5">
     <div class="row justify-content-center">
         <div class="col-md-8">
-            <h1 class="mb-4">Welcome to the Education Platform</h1>
-            <h2 class="mb-5">I am a:</h2>
-            
-            <div class="d-flex justify-content-center gap-4">
-                <a href="{{ url_for('login', role='teacher') }}" class="btn btn-primary btn-lg px-5 py-3">
-                    <i class="fas fa-chalkboard-teacher me-2"></i>
-                    Teacher
-                </a>
-                <a href="{{ url_for('login', role='student') }}" class="btn btn-success btn-lg px-5 py-3">
-                    <i class="fas fa-user-graduate me-2"></i>
-                    Student
-                </a>
-            </div>
-            
-            <div class="mt-4">
-                <a href="{{ url_for('view_scenarios') }}" class="btn btn-outline-secondary">
-                    <i class="fas fa-eye me-2"></i>
-                    View Scenarios Without Login
-                </a>
+            <div class="card shadow-sm border-0 rounded-4 p-4">
+                <div class="card-body text-center">
+                    <h1 class="display-5 fw-bold mb-4">Welcome to Rewritten</h1>
+                    <h2 class="text-muted mb-5">I am a:</h2>
+                    
+                    <div class="d-flex justify-content-center gap-5 mb-5">
+                        <a href="{{ url_for('login', role='teacher') }}" class="btn btn-primary btn-lg px-5 py-3 rounded-pill shadow-sm transition">
+                            <i class="fas fa-chalkboard-teacher me-2"></i>
+                            Teacher
+                        </a>
+                        <a href="{{ url_for('login', role='student') }}" class="btn btn-success btn-lg px-5 py-3 rounded-pill shadow-sm transition">
+                            <i class="fas fa-user-graduate me-2"></i>
+                            Student
+                        </a>
+                    </div>
+                    
+                    <div>
+                        <a href="{{ url_for('view_scenarios') }}" class="btn btn-outline-secondary rounded-pill transition">
+                            <i class="fas fa-eye me-2"></i>
+                            View Scenarios Without Login
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+<style>
+    .transition {
+        transition: all 0.3s ease;
+    }
+    .btn:hover {
+        transform: translateY(-3px);
+    }
+</style>
 {% endblock %} 
