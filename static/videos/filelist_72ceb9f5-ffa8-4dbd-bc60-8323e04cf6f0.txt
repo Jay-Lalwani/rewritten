@@ -1,0 +1,2 @@
+file '/Users/barrett/dev/rewritten/static/videos/placeholder.mp4'
+file '/Users/barrett/dev/rewritten/static/videos/placeholder.mp4'
