@@ -802,5 +802,18 @@ def get_student_assignments():
     return jsonify({"assignments": assignment_list})
 
 
+@app.route("/student/assignments")
+@requires_auth
+def student_assignments_page():
+    """Show a student their assignments with play options"""
+    if session.get("user_type") != "student":
+        return redirect(url_for("dashboard"))
+    
+    student_id = session.get("user_id")
+    student = Student.query.get(student_id)
+    
+    return render_template("student_assignments.html", user=student)
+
+
 if __name__ == "__main__":
     app.run(debug=True, port=5001)

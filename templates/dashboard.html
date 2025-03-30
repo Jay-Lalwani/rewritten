@@ -13,7 +13,11 @@
       
       <div class="list-group mb-4">
         <a href="#" class="list-group-item list-group-item-action active">Home</a>
+        {% if user_type == 'teacher' %}
         <a href="/view-scenarios" class="list-group-item list-group-item-action">Explore Scenarios</a>
+        {% else %}
+        <a href="/student/assignments" class="list-group-item list-group-item-action">My Assignments</a>
+        {% endif %}
         
         {% if user_type == 'teacher' %}
         <!-- Teacher-specific sidebar items -->
@@ -23,7 +27,7 @@
         {% else %}
         <!-- Student-specific sidebar items -->
         <a href="#" class="list-group-item list-group-item-action" onclick="showStudentPanel('join-assignment')">Join Assignment</a>
-        <a href="#" class="list-group-item list-group-item-action" onclick="showStudentPanel('my-assignments')">My Assignments</a>
+        <a href="/student/assignments" class="list-group-item list-group-item-action">My Assignments</a>
         <a href="#" class="list-group-item list-group-item-action" onclick="showStudentPanel('my-progress')">My Progress</a>
         {% endif %}
       </div>
@@ -163,7 +167,7 @@
               <div class="card-body">
                 <div class="d-grid gap-2">
                   <button class="btn btn-primary" onclick="showStudentPanel('join-assignment')">Join Assignment</button>
-                  <a href="/view-scenarios" class="btn btn-outline-primary">Explore Scenarios</a>
+                  <a href="/student/assignments" class="btn btn-outline-primary">My Assignments</a>
                 </div>
               </div>
             </div>
@@ -356,7 +360,7 @@
           
           html += '</div>';
           if (data.assignments.length > 3) {
-            html += '<div class="mt-2 text-center"><a href="#" onclick="showStudentPanel(\'my-assignments\')">View all assignments</a></div>';
+            html += '<div class="mt-2 text-center"><a href="/student/assignments">View all assignments</a></div>';
           }
           assignmentsList.innerHTML = html;
         } else {
@@ -440,7 +444,7 @@
                 <p class="mb-1">Teacher: ${assignment.teacher_name}</p>
                 ${assignment.score ? `<p class="mb-1">Score: ${assignment.score}</p>` : ''}
                 <div class="mt-2">
-                  <a href="/view-scenarios" class="btn btn-sm btn-primary">Continue</a>
+                  <a href="/student/assignments" class="btn btn-sm btn-primary">Continue</a>
                 </div>
               </div>
             `;
@@ -611,7 +615,7 @@
           if (data.success) {
             alert(`Successfully joined assignment: ${data.assignment.title}`);
             joinAssignmentForm.reset();
-            window.location.href = '/view-scenarios'; // Redirect to start the scenario
+            window.location.href = '/student/assignments'; // Redirect to assignments page
           } else {
             alert(data.error || 'Error joining assignment');
           }
