@@ -1,96 +1,92 @@
-# Rewritten: AI-Powered Interactive Historical Adventure Game
+# Rewritten. Learn History by Living It.
 
-An interactive game that lets players reshape history through their decisions, powered by AI-generated narratives and immersive media.
+- Try it out: https://rewritten.tech
+- Demo: ...
+- GitHub: https://github.com/Jay-Lalwani/rewritten
 
-## Overview
+Rewritten is an interactive educational tool that transforms traditional history lessons into engaging, decision-driven experiences. It helps students learn by placing them directly inside historical events and challenging them to reshape the course of history through their choices. It blends storytelling, video generation, and factual reinforcement into a single learning experience.
 
-"Rewritten" is an educational game that combines:
-- AI-generated historical narratives with branching storylines
-- Visual storytelling through AI-generated images and videos
-- Interactive decision-making that impacts historical outcomes
+### For Students: Immersive Learning Through Choice
 
-Players experience pivotal historical moments like the Cuban Missile Crisis, making decisions that could rewrite history.
+- Join historical scenarios using a simple invite code provided by the teacher
+- Experience moments in history (e.g., Civil Rights Movement, Cuban Missile Crisis)
+- Make choices from three options at each decision point to shape the course of events
+- Watch short, AI-generated videos that visualize the outcome of their decisions
+- Read and listen to narrated story segments explaining the consequences of their choices
+- Answer factual multiple-choice questions during loading screens to reinforce learning
+- Receive a complete, personalized timeline of their alternate history at the end of the session
+- Reflect on, review, and optionally share their scenario with others
+- Learn history in an engaging, story-driven, and interactive format
 
-## Features
+### For Teachers: A Guided, Measurable Teaching Tool
 
-- **AI Story Generation**: Creates historically accurate scenarios with multiple decision paths
-- **Dynamic Video Generation**: Produces visual representations of the narrative on-the-fly
-- **Personalized Experience**: Each playthrough creates a unique storyline based on player choices
-- **Educational Value**: Learn history by experiencing it in an immersive, interactive format
+- Create custom historical learning scenarios with simple text prompts
+- Select key historical topics and generate dynamic, branching narratives
+- Automatically generate multimedia content and quiz questions from a single prompt
+- Invite students to participate with a unique scenario code
+- Track student progress in real time, including:
+  - Narrative choices
+  - Quiz results
+  - Completion status
+- Use student timelines as formative assessments or discussion starters
+- Make abstract or complex historical topics more tangible and relatable
+- Foster engagement, critical thinking, and content retention through interactivity
 
-## Setup Instructions
+## Why It Matters
 
-### Prerequisites
+Rewritten turns history class into an active experience, not just a passive subject. Students learn not just what happened, but why it mattered—and what could have happened if things went differently.
 
-- Python 3.11+
-- API keys for:
-  - Google Gemini API: For narrative and prompt generation
-  - Replicate API: For image generation
-  - RunwayML API: For video generation (optional - fake implementation included for demo)
+It’s easy to use, works in any classroom with a browser, and gives both students and teachers something they rarely get from a textbook: an emotional, memorable, and personalized experience with history.
 
-### Installation
+## Technical Overview
 
-1. Set up environment variables in a `.env` file in the `rewritten` directory:
+### Architecture and Backend
 
-```
-GEMINI_API_KEY=your_gemini_api_key
-REPLICATE_API_TOKEN=your_replicate_api_token
-RUNWAY_API_KEY=your_runway_api_key (optional)
-SECRET_KEY=your_flask_secret_key
-```
+The backend is developed in Python using the Flask framework. It handles routing, user sessions, and communication between the user interface and AI generation agents. The backend also serves HTML templates rendered on the server side.
 
-2. Install the required dependencies:
+All core functionality is modularized into AI “agents,” each defined as a Python class responsible for generating a specific type of media or narrative. These agents communicate in sequence to deliver each new scenario:
 
-```bash
-cd rewritten
-pip install -r requirements.txt
-# install ffmpeg
-```
+- The **Writer Agent** uses a large language model (Gemini 2.0 Flash) to generate narrative content and decision trees.
+- The **Producer Agent** translates narrative text into visual prompts for image and video generation.
+- The **Media Agents** handle image, video, and speech synthesis:
+  - Image generation uses **Flux 1.1 Pro** from Black Forest Labs.
+  - Video generation is handled by **Runway Gen-3 Alpha Turbo**.
+  - Text-to-speech narration is produced via **11Labs**.
 
-### Running the Application
+Each media component is generated asynchronously to ensure the UI remains responsive. This is managed through background task queues and polling.
 
-1. Start the Flask application:
+### Frontend
 
-```bash
-cd rewritten
-python app.py
-```
+The frontend is a web-based interface served through Flask’s templating engine. It’s styled using Bootstrap along with custom CSS.
 
-2. Open your web browser and navigate to:
+- A video player for displaying generated scenes
+- Clickable decision boxes for interactive branching
+- A quiz interface for answering multiple-choice questions
+- A progress tracker to visualize the student’s timeline
 
-```
-http://localhost:5000
-```
+### Authentication and User Roles
 
-3. Choose a historical scenario and begin your adventure.
+Authentication is managed via **Auth0**, using OAuth2 flows to support login with student or teacher roles. Role-based access ensures that teachers can create and manage scenarios, while students can join sessions and progress through stories.
 
-## Project Structure
+### Database
 
-- `app.py`: Main Flask application
-- `api/`: Backend modules for AI integration
-  - `writer_agent.py`: Generates historical narratives using Gemini 2.0
-  - `producer_agent.py`: Creates visual prompts using Gemini 2.0
-  - `media_generator.py`: Handles image and video generation
-- `database/`: Database management
-- `static/`: Frontend assets (CSS, JavaScript, images, videos)
-- `templates/`: HTML templates
-- `runwayml.py`: Placeholder implementation of the RunwayML client (for demo purposes)
+A lightweight **SQLite** database is used in conjunction with SQLAlchemy for data modeling. It stores:
+- User and session data
+- Scenario definitions and branching narratives
+- Student decisions and progress history
+- Links to generated media assets
 
-## Usage
+### Deployment and Infrastructure
 
-1. Select a historical scenario from the main screen
-2. Watch the generated video that sets up the historical context
-3. Read the narrative and choose from three possible decisions
-4. See how your decisions affect the course of history
-5. Track your decision path in the progress tracker
+Rewritten is containerized using **Docker**, with services defined via **Docker Compose**. The stack includes:
+- Flask application container
+- Traefik reverse proxy for SSL and load balancing
+- Horizontal scaling across multiple Flask containers
 
-## Notes
+### Production Deployment:
 
-This implementation uses:
-- Google AI Client with Gemini 2.0 for text generation
-- Replicate API for image generation
-- A placeholder implementation of RunwayML for video generation in demo mode
+- Hosted on an **AWS EC2** instance as a Virtual Private Server (VPS)
+- Docker images are built and distributed via **AWS Elastic Container Registry (ECR)**
+- **Traefik** handles HTTPS termination with **Let’s Encrypt**, dynamic routing, and load balancing
+- Domain and DNS services are managed through **Cloudflare**, which also provides DDoS protection and proxying
 
-## License
-
-MIT 
