@@ -7,6 +7,8 @@ import replicate
 import requests
 from runwayml import RunwayML
 from dotenv import load_dotenv
+from database.models import db
+from database.video_cache import VideoCache
 
 # Load environment variables
 load_dotenv()
@@ -85,6 +87,12 @@ def generate_video(first_frame_url, video_prompt):
     """
     
     try:
+        # Check if we already have a video with this prompt
+        cached_video = VideoCache.get_video_by_prompt(video_prompt)
+        if cached_video:
+            print(f"Using cached video for prompt: {video_prompt[:50]}...")
+            return cached_video.url_path
+            
         # Get the absolute path to the first frame image
         image_path = os.path.join(
             os.path.dirname(os.path.dirname(__file__)), 
@@ -116,11 +124,9 @@ def generate_video(first_frame_url, video_prompt):
         
         if output.status == "SUCCEEDED":
             # Save the video to a local file
-            static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static', 'videos')
-            os.makedirs(static_dir, exist_ok=True)
-            
-            video_filename = f"{uuid.uuid4()}.mp4"
-            video_path = os.path.join(static_dir, video_filename)
+            video_dir = VideoCache.get_static_video_dir()
+            video_filename = VideoCache.generate_unique_filename()
+            video_path = os.path.join(video_dir, video_filename)
             
             # Format handling for the output URL
             output_url = output.output
@@ -147,7 +153,14 @@ def generate_video(first_frame_url, video_prompt):
                 except Exception as del_err:
                     print(f"Error deleting first frame image {image_path}: {del_err}")
                 
-                return f"/static/videos/{video_filename}"
+                # Register the video in our cache
+                video_obj = VideoCache.save_video(
+                    f"/static/videos/{video_filename}",
+                    is_combined=False,
+                    original_prompt=video_prompt
+                )
+                
+                return video_obj.url_path
             except Exception as download_error:
                 print(f"Error downloading video: {download_error}")
                 return "/static/videos/placeholder.mp4"
@@ -202,16 +215,30 @@ def concatenate_videos(video_urls):
     if len(video_urls) == 1:
         return video_urls[0]['video_url']
     
+    # Create a unique concatenation signature based on sorted video URLs
+    sorted_urls = sorted([v['video_url'] for v in video_urls])
+    concat_signature = f"concat:{'|'.join(sorted_urls)}"
+    
+    # Check if we've already concatenated these exact videos
+    from database.models import Video
+    existing_videos = Video.query.filter_by(
+        is_combined=True, 
+        original_prompt=concat_signature
+    ).first()
+    
+    if existing_videos:
+        print("Using cached concatenated video")
+        return existing_videos.url_path
+    
     # Sort videos by scene_id
     video_urls.sort(key=lambda x: x['scene_id'])
     
     try:
         # Create temp directory for FFmpeg files
-        static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static', 'videos')
-        os.makedirs(static_dir, exist_ok=True)
+        video_dir = VideoCache.get_static_video_dir()
         
         # Create a file list for FFmpeg
-        file_list_path = os.path.join(static_dir, f"filelist_{uuid.uuid4()}.txt")
+        file_list_path = os.path.join(video_dir, f"filelist_{uuid.uuid4()}.txt")
         
         # Get absolute paths for all videos
         video_paths = []
@@ -228,8 +255,8 @@ def concatenate_videos(video_urls):
                 f.write(f"file '{path}'\n")
         
         # Output path for concatenated video
-        output_filename = f"{uuid.uuid4()}.mp4"
-        output_path = os.path.join(static_dir, output_filename)
+        output_filename = VideoCache.generate_unique_filename()
+        output_path = os.path.join(video_dir, output_filename)
         
         # Run FFmpeg to concatenate videos
         try:
@@ -248,24 +275,21 @@ def concatenate_videos(video_urls):
             # Clean up the file list
             os.remove(file_list_path)
             
-            # Delete individual video files after successful concatenation
-            print("Deleting individual scene videos...")
-            for video_path in video_paths:
-                try:
-                    if os.path.exists(video_path):
-                        os.remove(video_path)
-                        print(f"Deleted: {video_path}")
-                except Exception as del_err:
-                    print(f"Error deleting video {video_path}: {del_err}")
+            # Register the concatenated video in our cache
+            video_obj = VideoCache.save_video(
+                f"/static/videos/{output_filename}",
+                is_combined=True,
+                original_prompt=concat_signature
+            )
             
-            return f"/static/videos/{output_filename}"
+            return video_obj.url_path
             
-        except FileNotFoundError:
-            print("FFmpeg not found. Please install FFmpeg to enable video concatenation.")
-            # If FFmpeg is not installed, fall back to the first video
+        except Exception as e:
+            print(f"Error concatenating videos: {e}")
+            # Fall back to the first video if concatenation fails
             return video_urls[0]['video_url']
-        
+    
     except Exception as e:
-        print(f"Error concatenating videos: {e}")
-        # If concatenation fails, return the first video
+        print(f"Error in concatenate_videos: {e}")
+        # Fall back to the first video
         return video_urls[0]['video_url'] 
