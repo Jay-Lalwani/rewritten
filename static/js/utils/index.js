@@ -7,9 +7,9 @@ const Utils = {
    * Shows an element by removing the d-none class
    * @param {HTMLElement} element - The element to show
    */
-  showElement: function(element) {
+  showElement: function (element) {
     if (element) {
-      element.classList.remove('d-none');
+      element.classList.remove("d-none");
     }
   },
 
@@ -17,9 +17,9 @@ const Utils = {
    * Hides an element by adding the d-none class
    * @param {HTMLElement} element - The element to hide
    */
-  hideElement: function(element) {
+  hideElement: function (element) {
     if (element) {
-      element.classList.add('d-none');
+      element.classList.add("d-none");
     }
   },
 
@@ -30,23 +30,23 @@ const Utils = {
    * @param {string} textContent - Optional text content for the element
    * @returns {HTMLElement} The created element
    */
-  createElement: function(tag, attributes = {}, textContent = '') {
+  createElement: function (tag, attributes = {}, textContent = "") {
     const element = document.createElement(tag);
-    
+
     // Set attributes
     for (const [key, value] of Object.entries(attributes)) {
-      if (key === 'className') {
+      if (key === "className") {
         element.className = value;
       } else {
         element.setAttribute(key, value);
       }
     }
-    
+
     // Set text content if provided
     if (textContent) {
       element.textContent = textContent;
     }
-    
+
     return element;
   },
 
@@ -55,7 +55,7 @@ const Utils = {
    * @param {string} id - The ID of the element
    * @returns {HTMLElement} The DOM element
    */
-  getById: function(id) {
+  getById: function (id) {
     return document.getElementById(id);
-  }
-}; 
+  },
+};

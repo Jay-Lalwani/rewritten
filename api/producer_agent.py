@@ -43,24 +43,23 @@ IMPORTANT GUIDELINES:
 6. Avoid special characters, aggressive language or nsfw prompts that specify violence or gore.
 """
 
+
 def generate_scene_prompts(narrative_text):
     """
     Convert a narrative text into scene prompts for image and video generation.
-    
+
     Args:
         narrative_text: The narrative text to convert
-        
+
     Returns:
         JSON object with scene prompts
     """
     # Create a new chat with system instruction
     chat = client.chats.create(
         model="gemini-2.0-flash",
-        config=types.GenerateContentConfig(
-            system_instruction=PRODUCER_SYSTEM_PROMPT
-        )
+        config=types.GenerateContentConfig(system_instruction=PRODUCER_SYSTEM_PROMPT),
     )
-    
+
     prompt = f"""
     Narrative: {narrative_text}
     
@@ -68,10 +67,10 @@ def generate_scene_prompts(narrative_text):
     Each scene should have a first_frame_prompt and a video_prompt as specified.
     Remember that the first scene should establish context, the second scene should relate to the decision, and both video prompts must describe ONE CLEAR ACTION.
     """
-    
+
     # Get response from Gemini
     response = chat.send_message(prompt)
-    
+
     try:
         # Parse the response
         # Gemini might wrap the JSON in markdown code blocks, so we need to extract it
@@ -80,9 +79,9 @@ def generate_scene_prompts(narrative_text):
             content = content.split("```json")[1].split("```")[0].strip()
         elif "```" in content:
             content = content.split("```")[1].split("```")[0].strip()
-            
+
         scene_data = json.loads(content)
-        
+
         # Print generated prompts
         print("\n=== GENERATED SCENE PROMPTS ===")
         for scene in scene_data["scenes"]:
@@ -90,7 +89,7 @@ def generate_scene_prompts(narrative_text):
             print(f"  Image: {scene['first_frame_prompt']}")
             print(f"  Video: {scene['video_prompt']}")
         print("==============================\n")
-        
+
         # Validate the response format
         assert "scenes" in scene_data
         assert len(scene_data["scenes"]) == 2
@@ -98,9 +97,9 @@ def generate_scene_prompts(narrative_text):
             assert "scene_id" in scene
             assert "first_frame_prompt" in scene
             assert "video_prompt" in scene
-        
+
         return scene_data
-    
+
     except (json.JSONDecodeError, AssertionError) as e:
         # Fallback to a default response if the AI response is not valid
         return {
@@ -108,12 +107,12 @@ def generate_scene_prompts(narrative_text):
                 {
                     "scene_id": 1,
                     "first_frame_prompt": f"Historical scene depicting {narrative_text}",
-                    "video_prompt": f"Short video clip showing {narrative_text}"
+                    "video_prompt": f"Short video clip showing {narrative_text}",
                 },
                 {
                     "scene_id": 2,
                     "first_frame_prompt": f"Close-up of key figures involved in {narrative_text}",
-                    "video_prompt": f"A dramatic moment showing a critical choice being made related to {narrative_text}"
-                }
+                    "video_prompt": f"A dramatic moment showing a critical choice being made related to {narrative_text}",
+                },
             ]
-        } 
+        }

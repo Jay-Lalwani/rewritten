@@ -52,31 +52,39 @@ header {
 }
 
 header::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   height: 4px;
-  background: linear-gradient(90deg, var(--secondary-color), var(--accent-color));
+  background: linear-gradient(
+    90deg,
+    var(--secondary-color),
+    var(--accent-color)
+  );
   z-index: 2;
 }
 
 header::after {
-  content: '';
+  content: "";
   position: absolute;
   top: -50%;
   right: -10%;
   width: 60%;
   height: 200%;
-  background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0) 70%);
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(255, 255, 255, 0) 70%
+  );
   transform: rotate(15deg);
   z-index: 1;
   pointer-events: none;
 }
 
 .game-title {
-  font-family: 'Sora', 'Arial', sans-serif;
+  font-family: "Sora", "Arial", sans-serif;
   font-size: 3.6rem;
   font-weight: 700;
   color: var(--light-color);
@@ -85,7 +93,11 @@ header::after {
   letter-spacing: 1.5px;
   position: relative;
   display: inline-block;
-  background: linear-gradient(to right, #ffffff 0%, rgba(255,255,255,0.9) 100%);
+  background: linear-gradient(
+    to right,
+    #ffffff 0%,
+    rgba(255, 255, 255, 0.9) 100%
+  );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   animation: titleGlow 5s ease-in-out infinite alternate;
@@ -96,25 +108,32 @@ header::after {
     text-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
   }
   100% {
-    text-shadow: 0 0 20px rgba(255, 255, 255, 0.3), 0 0 40px rgba(255, 255, 255, 0.1);
+    text-shadow:
+      0 0 20px rgba(255, 255, 255, 0.3),
+      0 0 40px rgba(255, 255, 255, 0.1);
   }
 }
 
 .game-title::after {
-  content: '';
+  content: "";
   position: absolute;
   bottom: -8px;
   left: 50%;
   transform: translateX(-50%);
   width: 45%;
   height: 3px;
-  background: linear-gradient(90deg, transparent, var(--secondary-color), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--secondary-color),
+    transparent
+  );
   border-radius: 3px;
   opacity: 0.8;
 }
 
 .game-subtitle {
-  font-family: 'Space Grotesk', 'Helvetica Neue', sans-serif;
+  font-family: "Space Grotesk", "Helvetica Neue", sans-serif;
   font-size: 1.35rem;
   color: rgba(255, 255, 255, 0.85);
   font-weight: 400;

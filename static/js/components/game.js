@@ -19,23 +19,23 @@ const GameComponent = {
   decisions: [],
   isPlayingAudio: false,
   isMuted: false,
-  pendingDecision: null,  // Store decision while quiz is shown
-  preloadedQuiz: null,    // Store preloaded quiz question
+  pendingDecision: null, // Store decision while quiz is shown
+  preloadedQuiz: null, // Store preloaded quiz question
 
   /**
    * Initialize the game component
    */
-  init: function() {
+  init: function () {
     // Initialize DOM elements
-    this.startScreen = Utils.getById('start-screen');
-    this.loadingScreen = Utils.getById('loading-screen');
-    this.gameContainer = Utils.getById('game-container');
-    this.gameVideo = Utils.getById('game-video');
-    this.narrativeText = Utils.getById('narrative-text');
-    this.decisionOptions = Utils.getById('decision-options');
-    this.progressPath = Utils.getById('progress-path');
-    this.ttsButton = Utils.getById('tts-button');
-    this.narrativeAudio = Utils.getById('narrative-audio');
+    this.startScreen = Utils.getById("start-screen");
+    this.loadingScreen = Utils.getById("loading-screen");
+    this.gameContainer = Utils.getById("game-container");
+    this.gameVideo = Utils.getById("game-video");
+    this.narrativeText = Utils.getById("narrative-text");
+    this.decisionOptions = Utils.getById("decision-options");
+    this.progressPath = Utils.getById("progress-path");
+    this.ttsButton = Utils.getById("tts-button");
+    this.narrativeAudio = Utils.getById("narrative-audio");
 
     this.initEventListeners();
   },
@@ -43,18 +43,18 @@ const GameComponent = {
   /**
    * Initialize event listeners
    */
-  initEventListeners: function() {
+  initEventListeners: function () {
     // Video player events
     if (this.gameVideo) {
-      this.gameVideo.addEventListener('play', () => {
+      this.gameVideo.addEventListener("play", () => {
         // Auto-play audio when video starts
         this.playNarrativeAudio();
-        
+
         // Preload quiz question when video starts playing
         this.preloadQuizQuestion();
       });
-      
-      this.gameVideo.addEventListener('ended', () => {
+
+      this.gameVideo.addEventListener("ended", () => {
         // Display decision options when video ends
         this.enableDecisions();
       });
@@ -62,14 +62,14 @@ const GameComponent = {
 
     // TTS button events
     if (this.ttsButton) {
-      this.ttsButton.addEventListener('click', () => {
+      this.ttsButton.addEventListener("click", () => {
         this.toggleMute();
       });
     }
 
     // Audio player events
     if (this.narrativeAudio) {
-      this.narrativeAudio.addEventListener('ended', () => {
+      this.narrativeAudio.addEventListener("ended", () => {
         this.isPlayingAudio = false;
         this.updateTtsButtonState();
       });
@@ -79,39 +79,45 @@ const GameComponent = {
   /**
    * Toggle audio mute state
    */
-  toggleMute: function() {
+  toggleMute: function () {
     this.isMuted = !this.isMuted;
-    
+
     if (this.narrativeAudio) {
       this.narrativeAudio.muted = this.isMuted;
     }
-    
+
     this.updateTtsButtonState();
   },
 
   /**
    * Play narrative audio
    */
-  playNarrativeAudio: function() {
+  playNarrativeAudio: function () {
     if (!this.currentScene || !this.currentScene.narrative || !this.audioUrl) {
       return;
     }
 
     // Set audio source if not already set
-    if (!this.narrativeAudio.getAttribute('data-scene-id') || 
-        this.narrativeAudio.getAttribute('data-scene-id') !== String(this.currentScene.scene_id)) {
+    if (
+      !this.narrativeAudio.getAttribute("data-scene-id") ||
+      this.narrativeAudio.getAttribute("data-scene-id") !==
+        String(this.currentScene.scene_id)
+    ) {
       this.narrativeAudio.src = this.audioUrl;
-      this.narrativeAudio.setAttribute('data-scene-id', this.currentScene.scene_id);
+      this.narrativeAudio.setAttribute(
+        "data-scene-id",
+        this.currentScene.scene_id,
+      );
     }
-    
+
     // Set muted state based on user preference
     this.narrativeAudio.muted = this.isMuted;
-    
+
     // Play the audio
-    this.narrativeAudio.play().catch(error => {
-      console.error('Error playing narrative audio:', error);
+    this.narrativeAudio.play().catch((error) => {
+      console.error("Error playing narrative audio:", error);
     });
-    
+
     this.isPlayingAudio = true;
     this.updateTtsButtonState();
   },
@@ -119,7 +125,7 @@ const GameComponent = {
   /**
    * Update TTS button state
    */
-  updateTtsButtonState: function() {
+  updateTtsButtonState: function () {
     if (this.isMuted) {
       this.ttsButton.innerHTML = '<i class="fas fa-volume-mute"></i>';
       this.ttsButton.title = "Unmute narrative";
@@ -134,7 +140,7 @@ const GameComponent = {
    * Start a new game with the given scenario
    * @param {string} scenario - The scenario name
    */
-  startGame: function(scenario) {
+  startGame: function (scenario) {
     // Show loading screen
     Utils.hideElement(this.startScreen);
     Utils.showElement(this.loadingScreen);
@@ -161,7 +167,7 @@ const GameComponent = {
         this.gameVideo.play();
       })
       .catch(() => {
-        alert('An error occurred while starting the game. Please try again.');
+        alert("An error occurred while starting the game. Please try again.");
 
         // Go back to start screen
         Utils.hideElement(this.loadingScreen);
@@ -172,7 +178,7 @@ const GameComponent = {
   /**
    * Update the narrative display
    */
-  updateNarrativeDisplay: function() {
+  updateNarrativeDisplay: function () {
     // Update the narrative text
     if (this.narrativeText && this.currentScene) {
       this.narrativeText.textContent = this.currentScene.narrative;
@@ -182,20 +188,22 @@ const GameComponent = {
     if (this.narrativeAudio) {
       this.narrativeAudio.pause();
       this.narrativeAudio.currentTime = 0;
-      this.narrativeAudio.removeAttribute('src');
-      this.narrativeAudio.removeAttribute('data-scene-id');
+      this.narrativeAudio.removeAttribute("src");
+      this.narrativeAudio.removeAttribute("data-scene-id");
       this.isPlayingAudio = false;
       this.updateTtsButtonState();
     }
 
     // Clear existing decision options
     if (this.decisionOptions) {
-      this.decisionOptions.innerHTML = '';
+      this.decisionOptions.innerHTML = "";
 
       // Create decision cards (but don't enable them until videos finish)
       if (this.currentScene && this.currentScene.options) {
         this.currentScene.options.forEach((option) => {
-          const decisionCard = Utils.createElement('div', { className: 'col-md-4' });
+          const decisionCard = Utils.createElement("div", {
+            className: "col-md-4",
+          });
           decisionCard.innerHTML = `
             <div class="card decision-card" data-decision-id="${option.id}">
               <div class="card-body">
@@ -215,17 +223,17 @@ const GameComponent = {
   /**
    * Preload a quiz question for later use
    */
-  preloadQuizQuestion: function() {
+  preloadQuizQuestion: function () {
     // Only preload if we don't already have one
     if (!this.preloadedQuiz) {
       ApiService.getQuizQuestion()
-        .then(data => {
+        .then((data) => {
           if (data.question) {
             this.preloadedQuiz = data.question;
             console.log("Quiz question preloaded and ready");
           }
         })
-        .catch(error => {
+        .catch((error) => {
           console.error("Error preloading quiz:", error);
         });
     }
@@ -234,17 +242,17 @@ const GameComponent = {
   /**
    * Enable decision cards for interaction
    */
-  enableDecisions: function() {
+  enableDecisions: function () {
     // Enable decision cards
-    const decisionCards = document.querySelectorAll('.decision-card');
+    const decisionCards = document.querySelectorAll(".decision-card");
     decisionCards.forEach((card) => {
-      card.addEventListener('click', () => {
-        const decisionId = card.getAttribute('data-decision-id');
+      card.addEventListener("click", () => {
+        const decisionId = card.getAttribute("data-decision-id");
         this.makeDecision(decisionId);
 
         // Add selected class to the chosen card
-        decisionCards.forEach((c) => c.classList.remove('selected'));
-        card.classList.add('selected');
+        decisionCards.forEach((c) => c.classList.remove("selected"));
+        card.classList.add("selected");
       });
     });
   },
@@ -253,18 +261,18 @@ const GameComponent = {
    * Make a decision
    * @param {string} decisionId - The selected decision ID
    */
-  makeDecision: function(decisionId) {
+  makeDecision: function (decisionId) {
     // Store the decision for later processing
     this.pendingDecision = {
       sceneId: this.currentScene.scene_id,
-      decisionId: decisionId
+      decisionId: decisionId,
     };
-    
+
     // Save the decision to the history
     const selectedOption = this.currentScene.options.find(
-      (opt) => opt.id === decisionId
+      (opt) => opt.id === decisionId,
     );
-    
+
     this.decisions.push({
       scene_id: this.currentScene.scene_id,
       decision: decisionId,
@@ -276,7 +284,7 @@ const GameComponent = {
 
     // Hide game container
     Utils.hideElement(this.gameContainer);
-    
+
     // Use preloaded quiz question if available, otherwise fetch one
     if (this.preloadedQuiz) {
       QuizComponent.showQuestion(this.preloadedQuiz);
@@ -285,7 +293,7 @@ const GameComponent = {
       // Fallback to loading screen and fetch a question if preloaded one isn't available
       Utils.showElement(this.loadingScreen);
       ApiService.getQuizQuestion()
-        .then(data => {
+        .then((data) => {
           if (data.question) {
             Utils.hideElement(this.loadingScreen);
             QuizComponent.showQuestion(data.question);
@@ -293,32 +301,35 @@ const GameComponent = {
             this.processDecision();
           }
         })
-        .catch(error => {
+        .catch((error) => {
           console.error("Error fetching quiz:", error);
           this.processDecision();
         });
     }
   },
-  
+
   /**
    * Continue after quiz is completed
    */
-  continueAfterQuiz: function() {
+  continueAfterQuiz: function () {
     // Process the pending decision
     this.processDecision();
   },
-  
+
   /**
    * Process the stored decision with the API
    */
-  processDecision: function() {
+  processDecision: function () {
     if (!this.pendingDecision) {
       console.error("No pending decision to process");
       return;
     }
-    
+
     // Send decision to the server
-    ApiService.makeDecision(this.pendingDecision.sceneId, this.pendingDecision.decisionId)
+    ApiService.makeDecision(
+      this.pendingDecision.sceneId,
+      this.pendingDecision.decisionId,
+    )
       .then((data) => {
         // Update current scene
         this.currentScene = data.narrative;
@@ -337,17 +348,19 @@ const GameComponent = {
 
         // Start playing the video
         this.gameVideo.play();
-        
+
         // Clear the pending decision
         this.pendingDecision = null;
       })
       .catch(() => {
-        alert('An error occurred while processing your decision. Please try again.');
+        alert(
+          "An error occurred while processing your decision. Please try again.",
+        );
 
         // Go back to game container
         Utils.hideElement(this.loadingScreen);
         Utils.showElement(this.gameContainer);
-        
+
         // Clear the pending decision
         this.pendingDecision = null;
       });
@@ -356,19 +369,23 @@ const GameComponent = {
   /**
    * Update the progress tracker with decision history
    */
-  updateProgressTracker: function() {
+  updateProgressTracker: function () {
     if (this.progressPath) {
       // Clear current progress display
-      this.progressPath.innerHTML = '';
+      this.progressPath.innerHTML = "";
 
       // Add each decision to the progress path
       this.decisions.forEach((decision, index) => {
-        const progressItem = Utils.createElement('div', {
-          className: 'progress-item'
-        }, `Decision ${index + 1}: ${decision.decision_text}`);
-        
+        const progressItem = Utils.createElement(
+          "div",
+          {
+            className: "progress-item",
+          },
+          `Decision ${index + 1}: ${decision.decision_text}`,
+        );
+
         this.progressPath.appendChild(progressItem);
       });
     }
-  }
-}; 
+  },
+};
