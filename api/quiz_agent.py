@@ -4,6 +4,7 @@ import random
 import google.genai as genai
 from dotenv import load_dotenv
 from google.genai import types
+import re
 
 # Load environment variables
 load_dotenv()
@@ -35,8 +36,18 @@ IMPORTANT GUIDELINES:
 4. Focus on important historical facts, figures, dates, or consequences
 5. Ensure questions are clear, concise, and engaging
 6. Make questions moderately challenging but not obscure
+7. Do not include trailing commas in JSON arrays or objects
 """
 
+def clean_json_string(json_str):
+    """
+    Clean a JSON string to remove common formatting issues like trailing commas.
+    """
+    # Remove trailing commas in arrays and objects
+    json_str = re.sub(r',\s*}', '}', json_str)
+    json_str = re.sub(r',\s*]', ']', json_str)
+    
+    return json_str
 
 def generate_quiz_question(scenario=None, narrative=None):
     """
@@ -88,8 +99,11 @@ def generate_quiz_question(scenario=None, narrative=None):
         elif "```" in content:
             content = content.split("```")[1].split("```")[0].strip()
 
+        # Clean the JSON string before parsing
+        cleaned_content = clean_json_string(content)
+        
         # Parse the JSON
-        question_data = json.loads(content)
+        question_data = json.loads(cleaned_content)
 
         # Validate the response format
         assert "question" in question_data
