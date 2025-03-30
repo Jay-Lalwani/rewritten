@@ -531,23 +531,21 @@ def delete_scenario(scenario_name):
 @app.route("/api/quiz", methods=["GET"])
 def get_quiz():
     """Get a dynamic quiz question related to the current scenario/narrative."""
-    db = get_db()
     session_id = session.get("session_id")
     
     try:
         if session_id:
-            # Get the current scenario and narrative if available
-            session_data = db.execute(
-                "SELECT scenario, narrative_data FROM sessions WHERE id = ?", 
-                (session_id,)
-            ).fetchone()
+            # Get the current session using SQLAlchemy
+            game_session = GameSession.query.get(session_id)
             
-            if session_data:
-                scenario = session_data["scenario"]
+            if game_session:
+                scenario = game_session.scenario
                 narrative = None
                 
-                if session_data["narrative_data"]:
-                    narrative_data = json.loads(session_data["narrative_data"])
+                # Get narrative data from the related table
+                narrative_data_record = NarrativeData.query.filter_by(session_id=session_id).first()
+                if narrative_data_record:
+                    narrative_data = json.loads(narrative_data_record.data)
                     narrative = narrative_data.get("narrative")
                 
                 # Generate question based on context
