@@ -22,7 +22,6 @@
         {% if user_type == 'teacher' %}
         <!-- Teacher-specific sidebar items -->
         <a href="#" class="list-group-item list-group-item-action" onclick="showTeacherPanel('story-gallery')">Story Gallery</a>
-        <a href="#" class="list-group-item list-group-item-action" onclick="showTeacherPanel('manage-assignments')">Manage Assignments</a>
         <a href="#" class="list-group-item list-group-item-action" onclick="showTeacherPanel('track-progress')">Track Progress</a>
         {% else %}
         <!-- Student-specific sidebar items -->
@@ -140,8 +139,83 @@
       </div>
       
       <div id="track-progress-panel" class="panel" style="display: none;">
-        <h2>Track Progress</h2>
-        <p>Monitor your students' progress on assignments.</p>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <h2>Track Progress</h2>
+          <button class="btn btn-outline-secondary" onclick="showTeacherPanel('home')">Back to Dashboard</button>
+        </div>
+        
+        <div class="row mb-4">
+          <div class="col-md-6">
+            <div class="card h-100 shadow-sm">
+              <div class="card-header bg-gradient bg-light">
+                <h5 class="mb-0 text-primary">Assignment Completion</h5>
+              </div>
+              <div class="card-body p-4">
+                <canvas id="assignmentCompletionChart"></canvas>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card h-100 shadow-sm">
+              <div class="card-header bg-gradient bg-light">
+                <h5 class="mb-0 text-primary">Quiz Performance</h5>
+              </div>
+              <div class="card-body p-4">
+                <canvas id="quizPerformanceChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="card mb-4 shadow-sm">
+          <div class="card-header bg-gradient bg-light">
+            <h5 class="mb-0 text-primary">Student Performance</h5>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-striped table-hover">
+                <thead class="table-light">
+                  <tr>
+                    <th>Student</th>
+                    <th>Assignments Completed</th>
+                    <th>Average Score</th>
+                    <th>Quiz Accuracy</th>
+                  </tr>
+                </thead>
+                <tbody id="studentProgressTable">
+                  <tr>
+                    <td colspan="4" class="text-center">Loading student data...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        
+        <div class="card shadow-sm">
+          <div class="card-header bg-gradient bg-light">
+            <h5 class="mb-0 text-primary">Assignment Statistics</h5>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-striped table-hover">
+                <thead class="table-light">
+                  <tr>
+                    <th>Assignment</th>
+                    <th>Student Count</th>
+                    <th>Completion Rate</th>
+                    <th>Average Score</th>
+                  </tr>
+                </thead>
+                <tbody id="assignmentProgressTable">
+                  <tr>
+                    <td colspan="4" class="text-center">Loading assignment data...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       </div>
       
       {% else %}
@@ -218,8 +292,77 @@
       </div>
       
       <div id="my-progress-panel" class="panel" style="display: none;">
-        <h2>My Progress</h2>
-        <p>Track your progress on assignments.</p>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <h2>My Progress</h2>
+          <button class="btn btn-outline-secondary" onclick="showStudentPanel('home')">Back to Dashboard</button>
+        </div>
+        
+        <div class="row mb-4">
+          <div class="col-md-6">
+            <div class="card h-100 shadow-sm">
+              <div class="card-header bg-gradient bg-light">
+                <h5 class="mb-0 text-primary">Performance Summary</h5>
+              </div>
+              <div class="card-body p-4">
+                <div class="row mb-4" id="progressSummary">
+                  <div class="col-md-6">
+                    <div class="stats-item text-center mb-3">
+                      <h3 id="completionRate" class="text-success fw-bold">-</h3>
+                      <p class="text-muted">Completion Rate</p>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="stats-item text-center mb-3">
+                      <h3 id="averageScore" class="text-primary fw-bold">-</h3>
+                      <p class="text-muted">Average Score</p>
+                    </div>
+                  </div>
+                </div>
+                <canvas id="progressChart" height="220"></canvas>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card h-100 shadow-sm">
+              <div class="card-header bg-gradient bg-light">
+                <h5 class="mb-0 text-primary">Quiz Performance</h5>
+              </div>
+              <div class="card-body p-4">
+                <div class="stats-item text-center mb-4">
+                  <h3 id="quizAccuracy" class="text-success fw-bold">-</h3>
+                  <p class="text-muted">Quiz Accuracy</p>
+                </div>
+                <canvas id="quizChart" height="180"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="card shadow-sm">
+          <div class="card-header bg-gradient bg-light">
+            <h5 class="mb-0 text-primary">Assignment Details</h5>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-striped table-hover">
+                <thead class="table-light">
+                  <tr>
+                    <th>Assignment</th>
+                    <th>Scenario</th>
+                    <th>Status</th>
+                    <th>Score</th>
+                    <th>Quiz Results</th>
+                  </tr>
+                </thead>
+                <tbody id="assignmentDetailsTable">
+                  <tr>
+                    <td colspan="5" class="text-center">Loading assignment data...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       </div>
       {% endif %}
     </div>
@@ -233,67 +376,588 @@
     min-height: calc(100vh - 120px);
     display: flex;
     flex-direction: column;
+    border-right: 1px solid rgba(0,0,0,0.05);
   }
   
   .main-content {
     min-height: calc(100vh - 120px);
   }
   
+  .card {
+    transition: all 0.3s ease;
+    border: none;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  
+  .card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+  }
+  
+  .card-header {
+    border-bottom: none;
+    padding: 1.25rem 1.5rem;
+  }
+  
+  .stats-item h3 {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+    transition: all 0.3s ease;
+  }
+  
+  .stats-item:hover h3 {
+    transform: scale(1.1);
+  }
+  
+  .stats-item p {
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  
+  .table-hover tbody tr {
+    transition: all 0.2s ease;
+  }
+  
+  .table-hover tbody tr:hover {
+    background-color: rgba(66, 133, 244, 0.08);
+  }
+  
+  .badge {
+    font-weight: 500;
+    padding: 0.5em 0.8em;
+    border-radius: 30px;
+  }
+  
+  .bg-success {
+    background-color: #4CAF50 !important;
+  }
+  
+  .bg-warning {
+    background-color: #FFC107 !important;
+  }
+  
+  .text-primary {
+    color: #4285F4 !important;
+  }
+  
+  .text-success {
+    color: #4CAF50 !important;
+  }
+  
+  .shadow-sm {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important;
+  }
+  
+  .list-group-item {
+    border-left: none;
+    border-right: none;
+    padding: 1rem 1.25rem;
+  }
+  
+  .list-group-item.active {
+    background-color: #4285F4;
+    border-color: #4285F4;
+  }
+  
+  .btn-outline-secondary {
+    border-color: #e0e0e0;
+    color: #757575;
+  }
+  
+  .btn-outline-secondary:hover {
+    background-color: #f5f5f5;
+    border-color: #e0e0e0;
+    color: #616161;
+  }
+  
+  .panel {
+    animation: fadeIn 0.5s ease;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
   @media (max-width: 768px) {
     .sidebar {
       min-height: auto;
       margin-bottom: 20px;
+      border-right: none;
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+    
+    .stats-item h3 {
+      font-size: 2rem;
     }
   }
 </style>
 {% endblock %}
 
 {% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-  // Teacher panel navigation
-  function showTeacherPanel(panelId) {
-    // Hide all panels
-    document.querySelectorAll('.panel').forEach(panel => {
-      panel.style.display = 'none';
+  // Utility function to set the active sidebar item
+  function setActiveSidebarItem(itemText) {
+    document.querySelectorAll('.sidebar .list-group-item').forEach(item => {
+      if (item.textContent.trim() === itemText) {
+        item.classList.add('active');
+      } else {
+        item.classList.remove('active');
+      }
+    });
+  }
+
+  // Show the student panel
+  function showStudentPanel(panelName) {
+    const panels = ['student-home-panel', 'join-assignment-panel', 'my-assignments-panel', 'my-progress-panel'];
+    
+    panels.forEach(panel => {
+      document.getElementById(panel).style.display = panel === panelName + '-panel' ? 'block' : 'none';
     });
     
-    // Show the selected panel
-    if (panelId === 'home') {
-      document.getElementById('teacher-home-panel').style.display = 'block';
-      loadDashboardAssignments();
-    } else {
-      document.getElementById(`${panelId}-panel`).style.display = 'block';
-    }
+    let sidebarItemText = '';
+    if (panelName === 'home') sidebarItemText = 'Home';
+    else if (panelName === 'join-assignment') sidebarItemText = 'Join Assignment';
+    else if (panelName === 'my-assignments') sidebarItemText = 'My Assignments';
+    else if (panelName === 'my-progress') sidebarItemText = 'My Progress';
     
-    // If showing assignments panel, load assignments
-    if (panelId === 'manage-assignments') {
-      loadTeacherAssignments();
+    setActiveSidebarItem(sidebarItemText);
+    
+    if (panelName === 'my-progress') {
+      loadStudentProgressData();
     }
   }
-  
-  // Student panel navigation
-  function showStudentPanel(panelId) {
-    // Hide all panels
-    document.querySelectorAll('.panel').forEach(panel => {
-      panel.style.display = 'none';
+
+  // Show the teacher panel
+  function showTeacherPanel(panelName) {
+    const panels = ['teacher-home-panel', 'story-gallery-panel', 'track-progress-panel', 'assignment-details-panel'];
+    
+    panels.forEach(panel => {
+      document.getElementById(panel).style.display = panel === panelName + '-panel' ? 'block' : 'none';
     });
     
-    // Show the selected panel
-    if (panelId === 'home') {
-      document.getElementById('student-home-panel').style.display = 'block';
-      loadDashboardStudentAssignments();
-    } else {
-      document.getElementById(`${panelId}-panel`).style.display = 'block';
-    }
+    let sidebarItemText = '';
+    if (panelName === 'home') sidebarItemText = 'Home';
+    else if (panelName === 'story-gallery') sidebarItemText = 'Story Gallery';
+    else if (panelName === 'track-progress') sidebarItemText = 'Track Progress';
     
-    // If showing my assignments panel, load assignments
-    if (panelId === 'my-assignments') {
-      loadStudentAssignments();
+    setActiveSidebarItem(sidebarItemText);
+    
+    if (panelName === 'track-progress') {
+      loadTeacherStudentProgressData();
     }
   }
-  
-  // Load assignments for teacher dashboard
-  function loadDashboardAssignments() {
+
+  // Load student progress data
+  function loadStudentProgressData() {
+    fetch('/api/student/progress')
+      .then(response => response.json())
+      .then(data => {
+        // Update summary statistics
+        document.getElementById('completionRate').textContent = 
+          data.statistics.total_assignments > 0 ? data.statistics.completion_rate.toFixed(1) + '%' : 'No data';
+        document.getElementById('averageScore').textContent = 
+          data.statistics.total_assignments > 0 ? data.statistics.average_score.toFixed(1) : 'No data';
+        document.getElementById('quizAccuracy').textContent = 
+          data.statistics.total_questions_answered > 0 ? data.statistics.quiz_accuracy.toFixed(1) + '%' : 'No data';
+        
+        // Update assignment details table
+        const tableBody = document.getElementById('assignmentDetailsTable');
+        if (data.progress_items.length > 0) {
+          let html = '';
+          data.progress_items.forEach(item => {
+            const statusBadge = item.completed 
+              ? '<span class="badge bg-success">Completed</span>' 
+              : '<span class="badge bg-warning text-dark">In Progress</span>';
+            
+            const quizResults = item.quiz_responses.length > 0
+              ? `${item.quiz_responses.filter(q => q.correct).length}/${item.quiz_responses.length} correct`
+              : 'No quizzes taken';
+            
+            html += `
+              <tr>
+                <td>${item.title}</td>
+                <td>${item.scenario}</td>
+                <td>${statusBadge}</td>
+                <td>${item.score !== null ? item.score : '-'}</td>
+                <td>${quizResults}</td>
+              </tr>
+            `;
+          });
+          tableBody.innerHTML = html;
+        } else {
+          tableBody.innerHTML = '<tr><td colspan="5" class="text-center">No assignments found. Join an assignment to start tracking your progress.</td></tr>';
+        }
+        
+        // Create progress chart only if there's data
+        if (data.statistics.total_assignments > 0) {
+          const chartElement = document.getElementById('progressChart');
+          if (chartElement) {
+            const progressCtx = chartElement.getContext('2d');
+            new Chart(progressCtx, {
+              type: 'doughnut',
+              data: {
+                labels: ['Completed', 'In Progress'],
+                datasets: [{
+                  data: [data.statistics.completed_assignments, data.statistics.total_assignments - data.statistics.completed_assignments],
+                  backgroundColor: ['#4CAF50', '#FFC107'],
+                  borderWidth: 1,
+                  borderColor: '#fff'
+                }]
+              },
+              options: {
+                responsive: true,
+                plugins: {
+                  legend: {
+                    position: 'bottom',
+                    labels: {
+                      usePointStyle: true,
+                      padding: 20
+                    }
+                  },
+                  title: {
+                    display: true,
+                    text: 'Assignment Completion',
+                    font: {
+                      size: 16
+                    },
+                    padding: {
+                      top: 10,
+                      bottom: 20
+                    }
+                  }
+                },
+                animation: {
+                  animateScale: true,
+                  animateRotate: true
+                },
+                cutout: '65%'
+              }
+            });
+          }
+        } else {
+          const chartElement = document.getElementById('progressChart');
+          if (chartElement) {
+            chartElement.outerHTML = 
+              '<div class="text-center text-muted p-4">Join assignments to see your completion data</div>';
+          }
+        }
+        
+        // Create quiz chart only if there's data
+        if (data.statistics.total_questions_answered > 0) {
+          const chartElement = document.getElementById('quizChart');
+          if (chartElement) {
+            const quizCtx = chartElement.getContext('2d');
+            new Chart(quizCtx, {
+              type: 'doughnut',
+              data: {
+                labels: ['Correct', 'Incorrect'],
+                datasets: [{
+                  data: [data.statistics.correct_answers, data.statistics.total_questions_answered - data.statistics.correct_answers],
+                  backgroundColor: ['#4CAF50', '#F44336'],
+                  borderWidth: 1,
+                  borderColor: '#fff'
+                }]
+              },
+              options: {
+                responsive: true,
+                plugins: {
+                  legend: {
+                    position: 'bottom',
+                    labels: {
+                      usePointStyle: true,
+                      padding: 20
+                    }
+                  },
+                  title: {
+                    display: true,
+                    text: 'Quiz Responses',
+                    font: {
+                      size: 16
+                    },
+                    padding: {
+                      top: 10,
+                      bottom: 20
+                    }
+                  }
+                },
+                animation: {
+                  animateScale: true,
+                  animateRotate: true
+                },
+                cutout: '65%'
+              }
+            });
+          }
+        } else {
+          const chartElement = document.getElementById('quizChart');
+          if (chartElement) {
+            chartElement.outerHTML = 
+              '<div class="text-center text-muted p-4">Take quizzes to see your performance data</div>';
+          }
+        }
+      })
+      .catch(error => {
+        console.error('Error loading progress data:', error);
+        
+        // Create more informative error message
+        let errorMessage = 'Error loading data. Please try again.';
+        
+        // Try to extract any error message from the response
+        if (error.response) {
+          try {
+            error.response.json().then(data => {
+              if (data && data.message) {
+                errorMessage = `Error: ${data.message}`;
+              }
+            });
+          } catch (e) {
+            console.error('Could not parse error response:', e);
+          }
+        }
+        
+        // Display error in assignment details table
+        const tableElement = document.getElementById('assignmentDetailsTable');
+        if (tableElement) {
+          tableElement.innerHTML = `<tr><td colspan="5" class="text-center text-danger">${errorMessage}</td></tr>`;
+        }
+        
+        // Show error in stat blocks
+        const completionRateElement = document.getElementById('completionRate');
+        if (completionRateElement) completionRateElement.textContent = '-';
+        
+        const averageScoreElement = document.getElementById('averageScore');
+        if (averageScoreElement) averageScoreElement.textContent = '-';
+        
+        const quizAccuracyElement = document.getElementById('quizAccuracy');
+        if (quizAccuracyElement) quizAccuracyElement.textContent = '-';
+        
+        // Clear chart areas with message
+        const progressChartElement = document.getElementById('progressChart');
+        if (progressChartElement) {
+          progressChartElement.outerHTML = '<div class="text-center text-danger p-3">Could not load chart data</div>';
+        }
+        
+        const quizChartElement = document.getElementById('quizChart');
+        if (quizChartElement) {
+          quizChartElement.outerHTML = '<div class="text-center text-danger p-3">Could not load chart data</div>';
+        }
+      });
+  }
+
+  // Load teacher student progress data
+  function loadTeacherStudentProgressData() {
+    fetch('/api/teacher/student-progress')
+      .then(response => response.json())
+      .then(data => {
+        // Update student progress table
+        const studentTable = document.getElementById('studentProgressTable');
+        if (data.students.length > 0) {
+          let html = '';
+          data.students.forEach(student => {
+            const completionRate = (student.assignments_completed / student.total_assignments * 100).toFixed(1);
+            const quizData = data.quiz_data.by_student[student.id] || { total: 0, correct: 0 };
+            const quizAccuracy = quizData.total > 0 ? (quizData.correct / quizData.total * 100).toFixed(1) + '%' : 'N/A';
+            
+            html += `
+              <tr>
+                <td>${student.name}</td>
+                <td>${student.assignments_completed}/${student.total_assignments} (${completionRate}%)</td>
+                <td>${student.average_score.toFixed(1)}</td>
+                <td>${quizAccuracy}</td>
+              </tr>
+            `;
+          });
+          studentTable.innerHTML = html;
+        } else {
+          studentTable.innerHTML = '<tr><td colspan="4" class="text-center">No student data available. Students need to join your assignments first.</td></tr>';
+        }
+        
+        // Update assignment progress table
+        const assignmentTable = document.getElementById('assignmentProgressTable');
+        if (data.assignments.length > 0) {
+          let html = '';
+          data.assignments.forEach(assignment => {
+            const quizData = data.quiz_data.by_assignment[assignment.id] || { total: 0, correct: 0 };
+            const quizAccuracy = quizData.total > 0 ? (quizData.correct / quizData.total * 100).toFixed(1) + '%' : 'N/A';
+            
+            html += `
+              <tr>
+                <td>${assignment.title}</td>
+                <td>${assignment.student_count}</td>
+                <td>${assignment.completion_rate.toFixed(1)}%</td>
+                <td>${quizAccuracy}</td>
+              </tr>
+            `;
+          });
+          assignmentTable.innerHTML = html;
+        } else {
+          assignmentTable.innerHTML = '<tr><td colspan="4" class="text-center">No assignment data available. Create assignments to track student progress.</td></tr>';
+        }
+        
+        // Create assignment completion chart only if there's data
+        if (data.assignments.length > 0) {
+          const assignmentLabels = data.assignments.map(a => a.title);
+          const completionRates = data.assignments.map(a => a.completion_rate);
+          
+          const chartElement = document.getElementById('assignmentCompletionChart');
+          if (chartElement) {
+            const assignmentCtx = chartElement.getContext('2d');
+            new Chart(assignmentCtx, {
+              type: 'bar',
+              data: {
+                labels: assignmentLabels,
+                datasets: [{
+                  label: 'Completion Rate (%)',
+                  data: completionRates,
+                  backgroundColor: '#4285F4',
+                  borderWidth: 1,
+                  borderRadius: 4,
+                  maxBarThickness: 50
+                }]
+              },
+              options: {
+                responsive: true,
+                scales: {
+                  y: {
+                    beginAtZero: true,
+                    max: 100,
+                    grid: {
+                      drawBorder: false
+                    },
+                    ticks: {
+                      callback: function(value) {
+                        return value + '%';
+                      }
+                    }
+                  },
+                  x: {
+                    grid: {
+                      display: false,
+                      drawBorder: false
+                    }
+                  }
+                },
+                plugins: {
+                  legend: {
+                    display: false
+                  },
+                  tooltip: {
+                    callbacks: {
+                      label: function(context) {
+                        return context.parsed.y.toFixed(1) + '%';
+                      }
+                    }
+                  }
+                },
+                animation: {
+                  duration: 1000,
+                  easing: 'easeOutQuart'
+                }
+              }
+            });
+          }
+        } else {
+          const chartElement = document.getElementById('assignmentCompletionChart');
+          if (chartElement) {
+            chartElement.outerHTML = 
+              '<div class="text-center text-muted p-4">Create assignments to see completion statistics</div>';
+          }
+        }
+        
+        // Create quiz performance chart only if there's data
+        if (data.quiz_data.total_questions > 0) {
+          const chartElement = document.getElementById('quizPerformanceChart');
+          if (chartElement) {
+            const quizPerformanceCtx = chartElement.getContext('2d');
+            new Chart(quizPerformanceCtx, {
+              type: 'pie',
+              data: {
+                labels: ['Correct Answers', 'Incorrect Answers'],
+                datasets: [{
+                  data: [
+                    data.quiz_data.correct_answers,
+                    data.quiz_data.total_questions - data.quiz_data.correct_answers
+                  ],
+                  backgroundColor: ['#4CAF50', '#F44336'],
+                  borderWidth: 1,
+                  borderColor: '#fff'
+                }]
+              },
+              options: {
+                responsive: true,
+                plugins: {
+                  legend: {
+                    position: 'bottom',
+                    labels: {
+                      usePointStyle: true,
+                      padding: 20
+                    }
+                  }
+                },
+                animation: {
+                  animateScale: true,
+                  animateRotate: true
+                }
+              }
+            });
+          }
+        } else {
+          const chartElement = document.getElementById('quizPerformanceChart');
+          if (chartElement) {
+            chartElement.outerHTML = 
+              '<div class="text-center text-muted p-4">Students need to take quizzes to see performance data</div>';
+          }
+        }
+      })
+      .catch(error => {
+        console.error('Error loading teacher progress data:', error);
+        
+        // Create more informative error message
+        let errorMessage = 'Error loading data. Please try again.';
+        
+        // Try to extract any error message from the response
+        if (error.response) {
+          try {
+            error.response.json().then(data => {
+              if (data && data.message) {
+                errorMessage = `Error: ${data.message}`;
+              }
+            });
+          } catch (e) {
+            console.error('Could not parse error response:', e);
+          }
+        }
+        
+        // Update tables with error message
+        const studentTable = document.getElementById('studentProgressTable');
+        if (studentTable) {
+          studentTable.innerHTML = `<tr><td colspan="4" class="text-center text-danger">${errorMessage}</td></tr>`;
+        }
+        
+        const assignmentTable = document.getElementById('assignmentProgressTable');
+        if (assignmentTable) {
+          assignmentTable.innerHTML = `<tr><td colspan="4" class="text-center text-danger">${errorMessage}</td></tr>`;
+        }
+        
+        // Clear chart areas with message
+        const assignmentChartElement = document.getElementById('assignmentCompletionChart');
+        if (assignmentChartElement) {
+          assignmentChartElement.outerHTML = '<div class="text-center text-danger p-3">Could not load chart data</div>';
+        }
+        
+        const quizChartElement = document.getElementById('quizPerformanceChart');
+        if (quizChartElement) {
+          quizChartElement.outerHTML = '<div class="text-center text-danger p-3">Could not load chart data</div>';
+        }
+      });
+  }
+
+  // Load teacher assignments list for dashboard
+  function loadTeacherAssignmentsList() {
     fetch('/api/assignments')
       .then(response => response.json())
       .then(data => {
@@ -310,17 +974,18 @@
                 <h5>${assignment.title}</h5>
                 <p>Scenario: ${assignment.scenario}</p>
                 <small>Code: <strong>${assignment.access_code}</strong></small>
+                <p class="mb-1 mt-2">Students: ${assignment.student_count}</p>
               </div>
             `;
           });
           
           html += '</div>';
           if (data.assignments.length > 3) {
-            html += '<div class="mt-2 text-center"><a href="#" onclick="showTeacherPanel(\'manage-assignments\')">View all assignments</a></div>';
+            html += '<div class="mt-2 text-center"><a href="#" onclick="showTeacherPanel(\'track-progress\')">Track student progress</a></div>';
           }
           assignmentsList.innerHTML = html;
         } else {
-          assignmentsList.innerHTML = '<p>You don\'t have any assignments yet.</p><button class="btn btn-primary mt-2" onclick="showTeacherPanel(\'manage-assignments\')">Create an assignment</button>';
+          assignmentsList.innerHTML = '<p>You don\'t have any assignments yet.</p>';
         }
       })
       .catch(error => {
@@ -329,8 +994,8 @@
       });
   }
   
-  // Load assignments for student dashboard
-  function loadDashboardStudentAssignments() {
+  // Load student assignments list for dashboard
+  function loadStudentAssignmentsList() {
     fetch('/api/student/assignments')
       .then(response => response.json())
       .then(data => {
@@ -353,13 +1018,15 @@
                   ${statusBadge}
                 </div>
                 <p>Scenario: ${assignment.scenario}</p>
+                <p>Teacher: ${assignment.teacher_name}</p>
+                ${assignment.score ? `<p>Score: ${assignment.score}</p>` : ''}
               </div>
             `;
           });
           
           html += '</div>';
           if (data.assignments.length > 3) {
-            html += '<div class="mt-2 text-center"><a href="/student/assignments">View all assignments</a></div>';
+            html += '<div class="mt-2 text-center"><a href="#" onclick="showStudentPanel(\'my-progress\')">View your progress</a></div>';
           }
           assignmentsList.innerHTML = html;
         } else {
@@ -371,289 +1038,13 @@
         document.getElementById('dashboard-student-assignments-list').innerHTML = '<p class="text-danger">Error loading assignments.</p>';
       });
   }
-  
-  // Teacher: Load assignments
-  function loadTeacherAssignments() {
-    // Load assignments list
-    fetch('/api/assignments')
-      .then(response => response.json())
-      .then(data => {
-        const assignmentsList = document.getElementById('assignments-list');
-        
-        if (data.assignments && data.assignments.length > 0) {
-          let html = '<div class="list-group">';
-          
-          data.assignments.forEach(assignment => {
-            const statusBadge = assignment.is_active 
-              ? '<span class="badge bg-success">Active</span>' 
-              : '<span class="badge bg-secondary">Inactive</span>';
-              
-            html += `
-              <div class="list-group-item list-group-item-action">
-                <div class="d-flex w-100 justify-content-between">
-                  <h5 class="mb-1">${assignment.title}</h5>
-                  ${statusBadge}
-                </div>
-                <p class="mb-1">Scenario: ${assignment.scenario}</p>
-                <div class="d-flex justify-content-between align-items-center">
-                  <small>Code: <strong>${assignment.access_code}</strong></small>
-                  <small>${assignment.student_count} students enrolled</small>
-                </div>
-                <div class="mt-2">
-                  <button class="btn btn-sm btn-outline-primary" onclick="viewAssignmentDetails(${assignment.id})">View Details</button>
-                </div>
-              </div>
-            `;
-          });
-          
-          html += '</div>';
-          assignmentsList.innerHTML = html;
-        } else {
-          assignmentsList.innerHTML = '<p class="text-center">No assignments created yet.</p>';
-        }
-      })
-      .catch(error => {
-        console.error('Error loading assignments:', error);
-        document.getElementById('assignments-list').innerHTML = 
-          '<div class="alert alert-danger">Error loading assignments. Please try again.</div>';
-      });
-      
-    // Load scenarios for the dropdown
-    fetch('/api/scenarios')
-      .then(response => response.json())
-      .then(data => {
-        const scenarioDropdown = document.getElementById('assignment-scenario');
-        
-        if (data.scenarios && data.scenarios.length > 0) {
-          // Clear the dropdown
-          scenarioDropdown.innerHTML = '';
-          
-          // Add each scenario as an option
-          data.scenarios.forEach(scenario => {
-            if (scenario !== "Apollo 11") { // Skip the unwanted Apollo 11 scenario
-              const option = document.createElement('option');
-              option.value = scenario;
-              option.textContent = scenario;
-              scenarioDropdown.appendChild(option);
-            }
-          });
-        } else {
-          scenarioDropdown.innerHTML = '<option value="" disabled>No scenarios available</option>';
-        }
-      })
-      .catch(error => {
-        console.error('Error loading scenarios:', error);
-        document.getElementById('assignment-scenario').innerHTML = 
-          '<option value="" disabled>Error loading scenarios</option>';
-      });
-  }
-  
-  // Student: Load assignments
-  function loadStudentAssignments() {
-    fetch('/api/student/assignments')
-      .then(response => response.json())
-      .then(data => {
-        const assignmentsList = document.getElementById('student-assignments-list');
-        
-        if (data.assignments && data.assignments.length > 0) {
-          let html = '<div class="list-group">';
-          
-          data.assignments.forEach(assignment => {
-            const statusBadge = assignment.completed 
-              ? '<span class="badge bg-success">Completed</span>' 
-              : '<span class="badge bg-warning text-dark">In Progress</span>';
-              
-            html += `
-              <div class="list-group-item list-group-item-action">
-                <div class="d-flex w-100 justify-content-between">
-                  <h5 class="mb-1">${assignment.title}</h5>
-                  ${statusBadge}
-                </div>
-                <p class="mb-1">Scenario: ${assignment.scenario}</p>
-                <p class="mb-1">Teacher: ${assignment.teacher_name}</p>
-                ${assignment.score ? `<p class="mb-1">Score: ${assignment.score}</p>` : ''}
-                <div class="mt-2">
-                  <a href="/student/assignments" class="btn btn-sm btn-primary">Continue</a>
-                </div>
-              </div>
-            `;
-          });
-          
-          html += '</div>';
-          assignmentsList.innerHTML = html;
-        } else {
-          assignmentsList.innerHTML = '<p class="text-center">You haven\'t joined any assignments yet.</p>';
-        }
-      })
-      .catch(error => {
-        console.error('Error loading assignments:', error);
-        document.getElementById('student-assignments-list').innerHTML = 
-          '<div class="alert alert-danger">Error loading assignments. Please try again.</div>';
-      });
-  }
-  
-  // Teacher: View assignment details
-  function viewAssignmentDetails(assignmentId) {
-    fetch(`/api/assignments/${assignmentId}`)
-      .then(response => response.json())
-      .then(data => {
-        const assignment = data.assignment;
-        const detailsContent = document.getElementById('assignment-details-content');
-        
-        let html = `
-          <div class="card mb-4">
-            <div class="card-header">
-              <div class="d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">${assignment.title}</h5>
-                <span class="badge ${assignment.is_active ? 'bg-success' : 'bg-secondary'}">
-                  ${assignment.is_active ? 'Active' : 'Inactive'}
-                </span>
-              </div>
-            </div>
-            <div class="card-body">
-              <p><strong>Scenario:</strong> ${assignment.scenario}</p>
-              <p><strong>Access Code:</strong> <span class="badge bg-primary">${assignment.access_code}</span></p>
-              <p><strong>Created:</strong> ${new Date(assignment.created_at).toLocaleString()}</p>
-            </div>
-          </div>
-          
-          <div class="card">
-            <div class="card-header">
-              <h5 class="mb-0">Student Progress</h5>
-            </div>
-            <div class="card-body">
-        `;
-        
-        if (assignment.students && assignment.students.length > 0) {
-          html += `
-            <div class="table-responsive">
-              <table class="table">
-                <thead>
-                  <tr>
-                    <th>Student</th>
-                    <th>Status</th>
-                    <th>Score</th>
-                    <th>Last Updated</th>
-                  </tr>
-                </thead>
-                <tbody>
-          `;
-          
-          assignment.students.forEach(student => {
-            html += `
-              <tr>
-                <td>${student.name}</td>
-                <td>
-                  <span class="badge ${student.completed ? 'bg-success' : 'bg-warning text-dark'}">
-                    ${student.completed ? 'Completed' : 'In Progress'}
-                  </span>
-                </td>
-                <td>${student.score || 'N/A'}</td>
-                <td>${new Date(student.last_updated).toLocaleString()}</td>
-              </tr>
-            `;
-          });
-          
-          html += `
-                </tbody>
-              </table>
-            </div>
-          `;
-        } else {
-          html += '<p class="text-center">No students have joined this assignment yet.</p>';
-        }
-        
-        html += `
-            </div>
-          </div>
-        `;
-        
-        detailsContent.innerHTML = html;
-        showTeacherPanel('assignment-details');
-      })
-      .catch(error => {
-        console.error('Error loading assignment details:', error);
-        alert('Error loading assignment details. Please try again.');
-      });
-  }
-  
-  // Add event listeners when the page loads
+
   document.addEventListener('DOMContentLoaded', function() {
-    // Initialize dashboard
-    if ('{{ user_type }}' === 'teacher') {
-      loadDashboardAssignments();
+    const userType = "{{ user_type }}";
+    if (userType === 'teacher') {
+      loadTeacherAssignmentsList();
     } else {
-      loadDashboardStudentAssignments();
-    }
-    
-    // Teacher: Create assignment form submission
-    const createAssignmentForm = document.getElementById('create-assignment-form');
-    if (createAssignmentForm) {
-      createAssignmentForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const title = document.getElementById('assignment-title').value;
-        const scenario = document.getElementById('assignment-scenario').value;
-        
-        fetch('/api/assignments', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            title: title,
-            scenario: scenario
-          }),
-        })
-        .then(response => response.json())
-        .then(data => {
-          if (data.success) {
-            alert(`Assignment created successfully! Access code: ${data.assignment.access_code}`);
-            createAssignmentForm.reset();
-            loadTeacherAssignments();
-          } else {
-            alert(data.message || 'Error creating assignment');
-          }
-        })
-        .catch(error => {
-          console.error('Error creating assignment:', error);
-          alert('Error creating assignment. Please try again.');
-        });
-      });
-    }
-    
-    // Student: Join assignment form submission
-    const joinAssignmentForm = document.getElementById('join-assignment-form');
-    if (joinAssignmentForm) {
-      joinAssignmentForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const accessCode = document.getElementById('assignment-code').value.toUpperCase();
-        
-        fetch('/api/join-assignment', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            access_code: accessCode
-          }),
-        })
-        .then(response => response.json())
-        .then(data => {
-          if (data.success) {
-            alert(`Successfully joined assignment: ${data.assignment.title}`);
-            joinAssignmentForm.reset();
-            window.location.href = '/student/assignments'; // Redirect to assignments page
-          } else {
-            alert(data.error || 'Error joining assignment');
-          }
-        })
-        .catch(error => {
-          console.error('Error joining assignment:', error);
-          alert('Error joining assignment. Please try again.');
-        });
-      });
+      loadStudentAssignmentsList();
     }
   });
 </script>

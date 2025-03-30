@@ -24,6 +24,7 @@ from database.models import (
     Student,
     Assignment,
     student_assignment_progress,
+    QuestionResponse,
 )
 import database
 from api.tts_agent import generate_speech
@@ -816,6 +817,266 @@ def student_assignments_page():
     student = Student.query.get(student_id)
     
     return render_template("student_assignments.html", user=student)
+
+
+@app.route("/api/student/progress", methods=["GET"])
+@requires_auth
+def get_student_progress():
+    """Get progress data for the current student including quiz results"""
+    try:
+        if session.get("user_type") != "student":
+            return jsonify({"error": "Only students can view their progress"}), 403
+        
+        student_id = session.get("user_id")
+        
+        # Get all assignments for this student
+        progress_records = db.session.execute(
+            text("SELECT * FROM student_assignment_progress WHERE student_id = :student_id"),
+            {"student_id": student_id}
+        ).fetchall()
+        
+        # Get all quiz responses for this student
+        quiz_responses = QuestionResponse.query.filter_by(student_id=student_id).all()
+        
+        # Organize quiz data by assignment
+        quiz_data_by_assignment = {}
+        for response in quiz_responses:
+            if response.assignment_id not in quiz_data_by_assignment:
+                quiz_data_by_assignment[response.assignment_id] = []
+            
+            quiz_data_by_assignment[response.assignment_id].append({
+                "question": response.question_text,
+                "answer": response.student_answer,
+                "correct": response.is_correct,
+                "score": response.score,
+                "scene_id": response.scene_id,
+                "date": response.created_at.isoformat()
+            })
+        
+        # Process the assignments with progress data
+        progress_data = []
+        for record in progress_records:
+            assignment_id = record.assignment_id
+            assignment = Assignment.query.get(assignment_id)
+            
+            if assignment:
+                progress_data.append({
+                    "assignment_id": assignment_id,
+                    "title": assignment.title,
+                    "scenario": assignment.scenario,
+                    "teacher_name": assignment.teacher.name,
+                    "completed": record.completed,
+                    "score": record.score,
+                    "last_scene_id": record.last_scene_id,
+                    "quiz_responses": quiz_data_by_assignment.get(assignment_id, [])
+                })
+        
+        # Aggregate statistics
+        total_assignments = len(progress_data)
+        completed_assignments = sum(1 for item in progress_data if item["completed"])
+        
+        # Calculate average score safely
+        scores = [item["score"] for item in progress_data if item["score"] is not None]
+        avg_score = sum(scores) / len(scores) if scores else 0
+        
+        # Calculate quiz statistics safely
+        total_questions = sum(len(item["quiz_responses"]) for item in progress_data)
+        correct_answers = sum(sum(1 for q in item["quiz_responses"] if q["correct"]) for item in progress_data)
+        quiz_accuracy = (correct_answers / total_questions) * 100 if total_questions > 0 else 0
+        
+        return jsonify({
+            "progress_items": progress_data,
+            "statistics": {
+                "total_assignments": total_assignments,
+                "completed_assignments": completed_assignments,
+                "completion_rate": (completed_assignments / total_assignments * 100) if total_assignments > 0 else 0,
+                "average_score": avg_score,
+                "total_questions_answered": total_questions,
+                "correct_answers": correct_answers,
+                "quiz_accuracy": quiz_accuracy
+            }
+        })
+    except Exception as e:
+        app.logger.error(f"Error in get_student_progress: {str(e)}")
+        return jsonify({
+            "error": "An error occurred while fetching progress data",
+            "message": str(e),
+            "progress_items": [],
+            "statistics": {
+                "total_assignments": 0,
+                "completed_assignments": 0,
+                "completion_rate": 0,
+                "average_score": 0,
+                "total_questions_answered": 0,
+                "correct_answers": 0,
+                "quiz_accuracy": 0
+            }
+        })
+
+
+@app.route("/api/teacher/student-progress", methods=["GET"])
+@requires_auth
+def get_teacher_student_progress():
+    """Get progress data for all students in a teacher's assignments"""
+    try:
+        if session.get("user_type") != "teacher":
+            return jsonify({"error": "Only teachers can view student progress"}), 403
+        
+        teacher_id = session.get("user_id")
+        app.logger.info(f"Fetching progress data for teacher ID: {teacher_id}")
+        
+        # Get all assignments for this teacher
+        assignments = Assignment.query.filter_by(teacher_id=teacher_id).all()
+        assignment_ids = [a.id for a in assignments]
+        
+        app.logger.info(f"Found {len(assignments)} assignments: {assignment_ids}")
+        
+        if not assignment_ids:
+            # No assignments found, return empty data
+            return jsonify({"assignments": [], "students": [], "quiz_data": {"total_questions": 0, "correct_answers": 0, "by_assignment": {}, "by_student": {}}})
+        
+        # Query all student progress records for the teacher's assignments with a proper SQL approach
+        student_assignments_data = []
+        
+        # Instead of using placeholders with a direct list, use SQLAlchemy's ORM
+        student_assignments_data = db.session.query(
+            Student.id, 
+            Student.name, 
+            Student.email,
+            student_assignment_progress.c.assignment_id,
+            student_assignment_progress.c.completed,
+            student_assignment_progress.c.score,
+            student_assignment_progress.c.last_scene_id
+        ).join(
+            student_assignment_progress,
+            Student.id == student_assignment_progress.c.student_id
+        ).filter(
+            student_assignment_progress.c.assignment_id.in_(assignment_ids)
+        ).all()
+        
+        app.logger.info(f"Found {len(student_assignments_data)} student-assignment records")
+        
+        # Get all quiz responses for these assignments
+        quiz_responses = QuestionResponse.query.filter(
+            QuestionResponse.assignment_id.in_(assignment_ids)
+        ).all()
+        
+        app.logger.info(f"Found {len(quiz_responses)} quiz responses")
+        
+        # Count student assignments and completed assignments by assignment ID
+        assignment_counts = {}
+        
+        # Process students
+        student_data = {}
+        for row in student_assignments_data:
+            student_id = row[0]
+            student_name = row[1]
+            student_email = row[2]
+            assignment_id = row[3]
+            completed = row[4]
+            score = row[5]
+            
+            # Process for assignment counts
+            if assignment_id not in assignment_counts:
+                assignment_counts[assignment_id] = {
+                    "total": 0,
+                    "completed": 0
+                }
+            
+            assignment_counts[assignment_id]["total"] += 1
+            if completed:
+                assignment_counts[assignment_id]["completed"] += 1
+            
+            # Process for student data
+            if student_id not in student_data:
+                student_data[student_id] = {
+                    "id": student_id,
+                    "name": student_name,
+                    "email": student_email,
+                    "assignments_completed": 0,
+                    "total_assignments": 0,
+                    "average_score": 0,
+                    "scores": []
+                }
+            
+            student_data[student_id]["total_assignments"] += 1
+            if completed:
+                student_data[student_id]["assignments_completed"] += 1
+            
+            if score is not None:
+                student_data[student_id]["scores"].append(score)
+        
+        # Calculate average scores
+        for student_id in student_data:
+            scores = student_data[student_id]["scores"]
+            if scores:
+                student_data[student_id]["average_score"] = sum(scores) / len(scores)
+            else:
+                student_data[student_id]["average_score"] = 0
+        
+        # Process quiz data
+        quiz_data = {
+            "total_questions": len(quiz_responses),
+            "correct_answers": sum(1 for r in quiz_responses if r.is_correct),
+            "by_assignment": {},
+            "by_student": {}
+        }
+        
+        # Organize quiz data by assignment
+        for response in quiz_responses:
+            if response.assignment_id not in quiz_data["by_assignment"]:
+                quiz_data["by_assignment"][response.assignment_id] = {
+                    "total": 0,
+                    "correct": 0
+                }
+            
+            quiz_data["by_assignment"][response.assignment_id]["total"] += 1
+            if response.is_correct:
+                quiz_data["by_assignment"][response.assignment_id]["correct"] += 1
+        
+        # Organize quiz data by student
+        for response in quiz_responses:
+            if response.student_id not in quiz_data["by_student"]:
+                quiz_data["by_student"][response.student_id] = {
+                    "total": 0,
+                    "correct": 0
+                }
+            
+            quiz_data["by_student"][response.student_id]["total"] += 1
+            if response.is_correct:
+                quiz_data["by_student"][response.student_id]["correct"] += 1
+        
+        # Process assignments
+        assignment_data = []
+        for assignment in assignments:
+            counts = assignment_counts.get(assignment.id, {"total": 0, "completed": 0})
+            student_count = counts["total"]
+            completion_count = counts["completed"]
+            completion_rate = (completion_count / max(1, student_count)) * 100
+            
+            assignment_data.append({
+                "id": assignment.id,
+                "title": assignment.title,
+                "scenario": assignment.scenario,
+                "student_count": student_count,
+                "completion_rate": completion_rate
+            })
+        
+        return jsonify({
+            "assignments": assignment_data,
+            "students": list(student_data.values()),
+            "quiz_data": quiz_data
+        })
+    
+    except Exception as e:
+        app.logger.error(f"Error in get_teacher_student_progress: {str(e)}")
+        return jsonify({
+            "error": "An error occurred while fetching progress data",
+            "message": str(e),
+            "assignments": [],
+            "students": [],
+            "quiz_data": {"total_questions": 0, "correct_answers": 0, "by_assignment": {}, "by_student": {}}
+        })
 
 
 if __name__ == "__main__":
