@@ -8,10 +8,10 @@ document.addEventListener("DOMContentLoaded", function () {
   GameComponent.init();
   ScenarioComponent.init();
   QuizComponent.init();
-  
+
   // Set up any additional event listeners or app-wide functionality
   setupAppEventListeners();
-  
+
   // Check for LMS integration if available
   checkLMSIntegration();
 });
@@ -22,12 +22,12 @@ document.addEventListener("DOMContentLoaded", function () {
 function setupAppEventListeners() {
   // Add any global event listeners here
   // This can be used to handle application-wide events
-  
+
   // Example: Close modal on escape key
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-      const openModals = document.querySelectorAll('.modal.show');
-      openModals.forEach(modal => {
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") {
+      const openModals = document.querySelectorAll(".modal.show");
+      openModals.forEach((modal) => {
         const modalInstance = bootstrap.Modal.getInstance(modal);
         if (modalInstance) {
           modalInstance.hide();
@@ -43,8 +43,8 @@ function setupAppEventListeners() {
  */
 function checkLMSIntegration() {
   // This function will be expanded in the future to handle LMS integration
-  console.log('Ready for future LMS integration');
-  
+  console.log("Ready for future LMS integration");
+
   // Will contain code to:
   // 1. Initialize LMS API connection
   // 2. Fetch user data from LMS
@@ -61,19 +61,19 @@ const RewrittenApp = {
   scenarios: {
     getAll: () => ApiService.getScenarios(),
     create: (name) => ScenarioComponent.addNewScenario(name),
-    delete: (name) => ScenarioComponent.deleteScenario(name)
+    delete: (name) => ScenarioComponent.deleteScenario(name),
   },
-  
+
   // Game management
   game: {
     start: (scenario) => GameComponent.startGame(scenario),
     getCurrentState: () => ({
       currentScene: GameComponent.currentScene,
-      decisions: GameComponent.decisions
+      decisions: GameComponent.decisions,
     }),
-    getProgress: () => ApiService.getProgress()
+    getProgress: () => ApiService.getProgress(),
   },
-  
+
   // UI controls
   ui: {
     showGame: () => {
@@ -90,8 +90,8 @@ const RewrittenApp = {
       Utils.hideElement(GameComponent.startScreen);
       Utils.hideElement(GameComponent.gameContainer);
       Utils.showElement(GameComponent.loadingScreen);
-    }
-  }
+    },
+  },
 };
 
 // Expose the API to the window object for external access

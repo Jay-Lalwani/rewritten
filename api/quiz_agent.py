@@ -1,6 +1,7 @@
-import os
 import json
+import os
 import random
+
 import google.genai as genai
 from dotenv import load_dotenv
 from google.genai import types
@@ -37,26 +38,25 @@ IMPORTANT GUIDELINES:
 6. Make questions moderately challenging but not obscure
 """
 
+
 def generate_quiz_question(scenario=None, narrative=None):
     """
     Generate a historical quiz question related to the given scenario or narrative.
-    
+
     Args:
         scenario: The historical scenario (e.g., "Cuban Missile Crisis")
         narrative: The current narrative text (optional)
-        
+
     Returns:
         JSON object with the quiz question
     """
-    
+
     # Create a new chat with system instruction
     chat = client.chats.create(
         model="gemini-2.0-flash",
-        config=types.GenerateContentConfig(
-            system_instruction=QUIZ_SYSTEM_PROMPT
-        )
+        config=types.GenerateContentConfig(system_instruction=QUIZ_SYSTEM_PROMPT),
     )
-    
+
     # Build prompt based on available context
     if narrative:
         prompt = f"""
@@ -75,39 +75,39 @@ def generate_quiz_question(scenario=None, narrative=None):
         Generate a general historical multiple-choice quiz question about a significant 
         historical event, person, or development.
         """
-    
+
     # Get response from Gemini
     response = chat.send_message(prompt)
-    
+
     try:
         # Parse the response
         content = response.text
-        
+
         # Extract JSON from the response (may be wrapped in markdown code blocks)
         if "```json" in content:
             content = content.split("```json")[1].split("```")[0].strip()
         elif "```" in content:
             content = content.split("```")[1].split("```")[0].strip()
-        
+
         # Parse the JSON
         question_data = json.loads(content)
-        
+
         # Validate the response format
         assert "question" in question_data
         assert "options" in question_data
         assert "correct_option_id" in question_data
         assert "explanation" in question_data
         assert len(question_data["options"]) == 3
-        
+
         # Add an ID to the question
         question_data["id"] = f"q{random.randint(1000, 9999)}"
-        
+
         return question_data
-    
+
     except (json.JSONDecodeError, AssertionError) as e:
         print(f"Error generating quiz question: {e}")
         print(f"Raw response: {response.text}")
-        
+
         # Fallback to a default question if the AI response is not valid
         return {
             "id": f"q{random.randint(1000, 9999)}",
@@ -115,11 +115,12 @@ def generate_quiz_question(scenario=None, narrative=None):
             "options": [
                 {"id": "a", "text": "The signing of the Magna Carta"},
                 {"id": "b", "text": "The Cuban Missile Crisis"},
-                {"id": "c", "text": "The Fall of the Berlin Wall"}
+                {"id": "c", "text": "The Fall of the Berlin Wall"},
             ],
             "correct_option_id": "b",
-            "explanation": "The Cuban Missile Crisis was a 13-day confrontation between the United States and Soviet Union in October 1962."
+            "explanation": "The Cuban Missile Crisis was a 13-day confrontation between the United States and Soviet Union in October 1962.",
         }
+
 
 # Fallback questions in case API calls fail
 FALLBACK_QUESTIONS = [
@@ -129,10 +130,10 @@ FALLBACK_QUESTIONS = [
         "options": [
             {"id": "a", "text": "1960"},
             {"id": "b", "text": "1962"},
-            {"id": "c", "text": "1964"}
+            {"id": "c", "text": "1964"},
         ],
         "correct_option_id": "b",
-        "explanation": "The Cuban Missile Crisis occurred in October 1962 when the Soviet Union placed nuclear missiles in Cuba."
+        "explanation": "The Cuban Missile Crisis occurred in October 1962 when the Soviet Union placed nuclear missiles in Cuba.",
     },
     {
         "id": "q2",
@@ -140,13 +141,14 @@ FALLBACK_QUESTIONS = [
         "options": [
             {"id": "a", "text": "Dwight D. Eisenhower"},
             {"id": "b", "text": "John F. Kennedy"},
-            {"id": "c", "text": "Lyndon B. Johnson"}
+            {"id": "c", "text": "Lyndon B. Johnson"},
         ],
         "correct_option_id": "b",
-        "explanation": "John F. Kennedy was the 35th President of the United States during the Cuban Missile Crisis."
-    }
+        "explanation": "John F. Kennedy was the 35th President of the United States during the Cuban Missile Crisis.",
+    },
 ]
+
 
 def get_fallback_question():
     """Return a random fallback question if API generation fails."""
-    return random.choice(FALLBACK_QUESTIONS) 
+    return random.choice(FALLBACK_QUESTIONS)

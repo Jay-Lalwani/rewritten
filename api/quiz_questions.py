@@ -15,10 +15,10 @@ QUIZ_QUESTIONS = [
         "options": [
             {"id": "a", "text": "1960"},
             {"id": "b", "text": "1962"},
-            {"id": "c", "text": "1964"}
+            {"id": "c", "text": "1964"},
         ],
         "correct_option_id": "b",
-        "explanation": "The Cuban Missile Crisis occurred in October 1962 when the Soviet Union placed nuclear missiles in Cuba."
+        "explanation": "The Cuban Missile Crisis occurred in October 1962 when the Soviet Union placed nuclear missiles in Cuba.",
     },
     {
         "id": "q2",
@@ -26,10 +26,10 @@ QUIZ_QUESTIONS = [
         "options": [
             {"id": "a", "text": "Dwight D. Eisenhower"},
             {"id": "b", "text": "John F. Kennedy"},
-            {"id": "c", "text": "Lyndon B. Johnson"}
+            {"id": "c", "text": "Lyndon B. Johnson"},
         ],
         "correct_option_id": "b",
-        "explanation": "John F. Kennedy was the 35th President of the United States during the Cuban Missile Crisis."
+        "explanation": "John F. Kennedy was the 35th President of the United States during the Cuban Missile Crisis.",
     },
     {
         "id": "q3",
@@ -37,13 +37,14 @@ QUIZ_QUESTIONS = [
         "options": [
             {"id": "a", "text": "Joseph Stalin"},
             {"id": "b", "text": "Nikita Khrushchev"},
-            {"id": "c", "text": "Leonid Brezhnev"}
+            {"id": "c", "text": "Leonid Brezhnev"},
         ],
         "correct_option_id": "b",
-        "explanation": "Nikita Khrushchev was the Premier of the Soviet Union during the crisis."
-    }
+        "explanation": "Nikita Khrushchev was the Premier of the Soviet Union during the crisis.",
+    },
 ]
+
 
 def get_random_question():
     """Return a random quiz question - legacy method for backward compatibility."""
-    return random.choice(QUIZ_QUESTIONS) 
+    return random.choice(QUIZ_QUESTIONS)

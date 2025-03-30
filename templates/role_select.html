@@ -1,32 +1,38 @@
-{% extends 'layouts/base.html' %}
-
-{% block title %}Choose Your Role - Education Platform{% endblock %}
-
-{% block content %}
+{% extends 'layouts/base.html' %} {% block title %}Choose Your Role - Education
+Platform{% endblock %} {% block content %}
 <div class="container text-center py-5">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <h1 class="mb-4">Welcome to the Education Platform</h1>
-            <h2 class="mb-5">I am a:</h2>
-            
-            <div class="d-flex justify-content-center gap-4">
-                <a href="{{ url_for('login', role='teacher') }}" class="btn btn-primary btn-lg px-5 py-3">
-                    <i class="fas fa-chalkboard-teacher me-2"></i>
-                    Teacher
-                </a>
-                <a href="{{ url_for('login', role='student') }}" class="btn btn-success btn-lg px-5 py-3">
-                    <i class="fas fa-user-graduate me-2"></i>
-                    Student
-                </a>
-            </div>
-            
-            <div class="mt-4">
-                <a href="{{ url_for('view_scenarios') }}" class="btn btn-outline-secondary">
-                    <i class="fas fa-eye me-2"></i>
-                    View Scenarios Without Login
-                </a>
-            </div>
-        </div>
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <h1 class="mb-4">Welcome to the Education Platform</h1>
+      <h2 class="mb-5">I am a:</h2>
+
+      <div class="d-flex justify-content-center gap-4">
+        <a
+          href="{{ url_for('login', role='teacher') }}"
+          class="btn btn-primary btn-lg px-5 py-3"
+        >
+          <i class="fas fa-chalkboard-teacher me-2"></i>
+          Teacher
+        </a>
+        <a
+          href="{{ url_for('login', role='student') }}"
+          class="btn btn-success btn-lg px-5 py-3"
+        >
+          <i class="fas fa-user-graduate me-2"></i>
+          Student
+        </a>
+      </div>
+
+      <div class="mt-4">
+        <a
+          href="{{ url_for('view_scenarios') }}"
+          class="btn btn-outline-secondary"
+        >
+          <i class="fas fa-eye me-2"></i>
+          View Scenarios Without Login
+        </a>
+      </div>
     </div>
+  </div>
 </div>
-{% endblock %} 
+{% endblock %}
