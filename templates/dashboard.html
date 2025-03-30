@@ -12,16 +12,18 @@
       <h5 class="mb-4">Dashboard</h5>
       
       <div class="list-group mb-4">
-        <a href="#" class="list-group-item list-group-item-action active">Home</a>
         {% if user_type == 'teacher' %}
-        <a href="/view-scenarios" class="list-group-item list-group-item-action">Explore Scenarios</a>
+        <a href="#" class="list-group-item list-group-item-action active" onclick="showTeacherPanel('home'); return false;">Home</a>
         {% else %}
+        <a href="#" class="list-group-item list-group-item-action active" onclick="showStudentPanel('home'); return false;">Home</a>
+        {% endif %}
+        {% if user_type == 'student' %}
         <a href="/student/assignments" class="list-group-item list-group-item-action">My Assignments</a>
         {% endif %}
-        
         {% if user_type == 'teacher' %}
         <!-- Teacher-specific sidebar items -->
         <a href="#" class="list-group-item list-group-item-action" onclick="showTeacherPanel('story-gallery')">Story Gallery</a>
+        <a href="#" class="list-group-item list-group-item-action" onclick="showTeacherPanel('manage-assignments')">Manage Assignments</a>
         <a href="#" class="list-group-item list-group-item-action" onclick="showTeacherPanel('track-progress')">Track Progress</a>
         {% else %}
         <!-- Student-specific sidebar items -->
@@ -70,7 +72,7 @@
               <div class="card-body">
                 <div class="d-grid gap-2">
                   <button class="btn btn-primary" onclick="showTeacherPanel('manage-assignments')">Create New Assignment</button>
-                  <a href="/view-scenarios" class="btn btn-outline-primary">Explore Scenarios</a>
+                  <button class="btn btn-outline-primary" onclick="showTeacherPanel('story-gallery')">Explore Story Gallery</button>
                 </div>
               </div>
             </div>
@@ -120,22 +122,66 @@
         </div>
       </div>
       
-      <!-- Teacher: Assignment Details Panel (initially hidden, shown when an assignment is clicked) -->
-      <div id="assignment-details-panel" class="panel" style="display: none;">
+      <!-- Other teacher panels (initially hidden) -->
+      <div id="story-gallery-panel" class="panel" style="display: none;">
         <div class="d-flex justify-content-between align-items-center mb-4">
-          <h2>Assignment Details</h2>
-          <button class="btn btn-outline-secondary" onclick="showTeacherPanel('manage-assignments')">Back to Assignments</button>
+          <h2>Story Gallery</h2>
+          <button class="btn btn-outline-secondary" onclick="showTeacherPanel('home')">Back to Dashboard</button>
         </div>
         
-        <div id="assignment-details-content">
-          <!-- Content will be populated dynamically -->
+        <div class="card mb-4">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Available Scenarios</h5>
+            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addScenarioModal">
+              <i class="fas fa-plus me-1"></i> Add Scenario
+            </button>
+          </div>
+          <div class="card-body">
+            <div class="row" id="scenario-container">
+              <div class="col-12 text-center">
+                <p>Loading scenarios...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Instructions Card -->
+        <div class="card">
+          <div class="card-header">
+            <h5 class="mb-0">Creating Assignments</h5>
+          </div>
+          <div class="card-body">
+            <p>Follow these steps to create and share historical scenarios with your students:</p>
+            <ol>
+              <li>Browse available scenarios or add a new one above</li>
+              <li>Create an assignment with your chosen scenario from the <a href="#" onclick="showTeacherPanel('manage-assignments'); return false;">Manage Assignments</a> panel</li>
+              <li>Share the access code with your students</li>
+              <li>Track student progress in the <a href="#" onclick="showTeacherPanel('track-progress'); return false;">Track Progress</a> panel</li>
+            </ol>
+          </div>
         </div>
       </div>
       
-      <!-- Other teacher panels (initially hidden) -->
-      <div id="story-gallery-panel" class="panel" style="display: none;">
-        <h2>Story Gallery</h2>
-        <p>Create and manage historical scenarios for your students.</p>
+      <!-- Modal for adding new scenarios -->
+      <div class="modal fade" id="addScenarioModal" tabindex="-1" aria-labelledby="addScenarioModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="addScenarioModalLabel">Add New Scenario</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <form id="new-scenario-form">
+                <div class="mb-3">
+                  <label for="new-scenario-name" class="form-label">Scenario Name</label>
+                  <input type="text" class="form-control" id="new-scenario-name" placeholder="E.g., Cuban Missile Crisis" required>
+                  <div class="form-text">Enter a historically significant event or period.</div>
+                </div>
+                <button type="submit" class="btn btn-primary">Create Scenario</button>
+              </form>
+            </div>
+          </div>
+        </div>
       </div>
       
       <div id="track-progress-panel" class="panel" style="display: none;">
@@ -533,21 +579,37 @@
 
   // Show the teacher panel
   function showTeacherPanel(panelName) {
-    const panels = ['teacher-home-panel', 'story-gallery-panel', 'track-progress-panel', 'assignment-details-panel'];
+    const panels = ['teacher-home-panel', 'story-gallery-panel', 'track-progress-panel', 'manage-assignments-panel'];
     
     panels.forEach(panel => {
-      document.getElementById(panel).style.display = panel === panelName + '-panel' ? 'block' : 'none';
+      if (panelName === 'home' && panel === 'teacher-home-panel') {
+        document.getElementById(panel).style.display = 'block';
+      } else {
+        document.getElementById(panel).style.display = panel === panelName + '-panel' ? 'block' : 'none';
+      }
     });
     
     let sidebarItemText = '';
     if (panelName === 'home') sidebarItemText = 'Home';
     else if (panelName === 'story-gallery') sidebarItemText = 'Story Gallery';
     else if (panelName === 'track-progress') sidebarItemText = 'Track Progress';
+    else if (panelName === 'manage-assignments') sidebarItemText = 'Manage Assignments';
     
     setActiveSidebarItem(sidebarItemText);
     
     if (panelName === 'track-progress') {
       loadTeacherStudentProgressData();
+    }
+    
+    if (panelName === 'story-gallery') {
+      if (typeof ScenarioComponent !== 'undefined' && ScenarioComponent.init) {
+        ScenarioComponent.init();
+      }
+    }
+    
+    if (panelName === 'manage-assignments') {
+      loadAssignmentsList();
+      loadScenariosForAssignments();
     }
   }
 
@@ -1039,12 +1101,315 @@
       });
   }
 
+  // Load scenarios for assignment creation dropdown
+  function loadScenariosForAssignments() {
+    const scenarioSelect = document.getElementById('assignment-scenario');
+    if (scenarioSelect) {
+      scenarioSelect.innerHTML = '<option value="" disabled selected>Loading scenarios...</option>';
+      
+      fetch('/api/scenarios')
+        .then(response => response.json())
+        .then(data => {
+          scenarioSelect.innerHTML = '';
+          
+          if (data.scenarios.length === 0) {
+            scenarioSelect.innerHTML = '<option value="" disabled>No scenarios available. Please create one first.</option>';
+            return;
+          }
+          
+          data.scenarios.forEach(scenario => {
+            const option = document.createElement('option');
+            option.value = scenario;
+            option.textContent = scenario;
+            scenarioSelect.appendChild(option);
+          });
+        })
+        .catch(error => {
+          console.error('Error loading scenarios:', error);
+          scenarioSelect.innerHTML = '<option value="" disabled>Error loading scenarios. Please try again.</option>';
+        });
+    }
+  }
+  
+  // Load teacher's assignments
+  function loadAssignmentsList() {
+    const assignmentsList = document.getElementById('assignments-list');
+    const dashboardAssignmentsList = document.getElementById('dashboard-assignments-list');
+    
+    if (assignmentsList || dashboardAssignmentsList) {
+      // Set loading state
+      if (assignmentsList) {
+        assignmentsList.innerHTML = '<p class="text-center text-muted">Loading assignments...</p>';
+      }
+      if (dashboardAssignmentsList) {
+        dashboardAssignmentsList.innerHTML = '<p class="text-center text-muted">Loading assignments...</p>';
+      }
+      
+      fetch('/api/assignments')
+        .then(response => response.json())
+        .then(data => {
+          let html = '';
+          
+          if (data.assignments.length === 0) {
+            html = '<p class="text-center text-muted">No assignments found. Create one to get started!</p>';
+          } else {
+            html = '<div class="list-group">';
+            data.assignments.forEach(assignment => {
+              const accessCodeDisplay = `
+                <div class="d-flex align-items-center">
+                  <span class="badge bg-primary">Code: ${assignment.access_code}</span>
+                  <button class="btn btn-sm btn-outline-secondary ms-2" onclick="copyToClipboard('${assignment.access_code}')">
+                    <i class="fas fa-copy"></i> Copy
+                  </button>
+                </div>`;
+              
+              html += `
+                <div class="list-group-item list-group-item-action">
+                  <div>
+                    <h5 class="mb-1">${assignment.title}</h5>
+                    <p class="mb-1">Scenario: ${assignment.scenario}</p>
+                    ${accessCodeDisplay}
+                  </div>
+                </div>
+              `;
+            });
+            html += '</div>';
+          }
+          
+          // Update both lists if they exist
+          if (assignmentsList) {
+            assignmentsList.innerHTML = html;
+          }
+          
+          // Update dashboard assignments list with a simplified version
+          if (dashboardAssignmentsList) {
+            if (data.assignments.length === 0) {
+              dashboardAssignmentsList.innerHTML = 
+                '<p class="text-center text-muted">No assignments found. Create one to get started!</p>';
+            } else {
+              let dashboardHtml = '<div class="list-group">';
+              const limitedAssignments = data.assignments.slice(0, 3); // Show only the first 3
+              
+              limitedAssignments.forEach(assignment => {
+                dashboardHtml += `
+                  <div class="list-group-item list-group-item-action">
+                    <h6 class="mb-1">${assignment.title}</h6>
+                    <div class="d-flex justify-content-between align-items-center">
+                      <small>Scenario: ${assignment.scenario}</small>
+                      <span class="badge bg-primary">Code: ${assignment.access_code}</span>
+                    </div>
+                  </div>
+                `;
+              });
+              
+              if (data.assignments.length > 3) {
+                dashboardHtml += `
+                  <div class="list-group-item text-center">
+                    <a href="#" onclick="showTeacherPanel('manage-assignments'); return false;">
+                      View all ${data.assignments.length} assignments
+                    </a>
+                  </div>
+                `;
+              }
+              
+              dashboardHtml += '</div>';
+              dashboardAssignmentsList.innerHTML = dashboardHtml;
+            }
+          }
+        })
+        .catch(error => {
+          console.error('Error loading assignments:', error);
+          const errorHtml = '<p class="text-center text-danger">Error loading assignments. Please try again.</p>';
+          
+          if (assignmentsList) {
+            assignmentsList.innerHTML = errorHtml;
+          }
+          if (dashboardAssignmentsList) {
+            dashboardAssignmentsList.innerHTML = errorHtml;
+          }
+        });
+    }
+  }
+  
+  // Utility function to copy text to clipboard
+  function copyToClipboard(text) {
+    navigator.clipboard.writeText(text)
+      .then(() => {
+        // Show a temporary notification
+        const notification = document.createElement('div');
+        notification.className = 'position-fixed top-0 end-0 p-3';
+        notification.style.zIndex = '5000';
+        notification.innerHTML = `
+          <div class="toast show" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+              <strong class="me-auto">Copied!</strong>
+              <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close" 
+                onclick="this.parentElement.parentElement.remove()"></button>
+            </div>
+            <div class="toast-body">
+              Access code copied to clipboard.
+            </div>
+          </div>
+        `;
+        document.body.appendChild(notification);
+        
+        // Remove after 3 seconds
+        setTimeout(() => {
+          notification.remove();
+        }, 3000);
+      })
+      .catch(err => {
+        console.error('Could not copy text: ', err);
+        alert('Failed to copy. Please try again.');
+      });
+  }
+
   document.addEventListener('DOMContentLoaded', function() {
-    const userType = "{{ user_type }}";
+    // Initialize based on user type
+    const userType = document.body.getAttribute('data-user-type');
+    
     if (userType === 'teacher') {
-      loadTeacherAssignmentsList();
-    } else {
-      loadStudentAssignmentsList();
+      // Load dashboard assignments list for teachers
+      loadAssignmentsList();
+      
+      // Initialize create assignment form
+      const createAssignmentForm = document.getElementById('create-assignment-form');
+      if (createAssignmentForm) {
+        createAssignmentForm.addEventListener('submit', function(e) {
+          e.preventDefault();
+          
+          const title = document.getElementById('assignment-title').value.trim();
+          const scenario = document.getElementById('assignment-scenario').value;
+          
+          if (!title || !scenario) {
+            alert('Please fill out all fields');
+            return;
+          }
+          
+          // Submit form data
+          fetch('/api/assignments', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              title: title,
+              scenario: scenario
+            })
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              // Reset form
+              document.getElementById('assignment-title').value = '';
+              
+              // Show success message
+              alert(`Assignment created successfully! Access code: ${data.assignment.access_code}`);
+              
+              // Reload assignments list
+              loadAssignmentsList();
+              
+              // Go back to assignments list
+              showTeacherPanel('manage-assignments');
+            } else {
+              alert(`Error: ${data.message || 'Could not create assignment'}`);
+            }
+          })
+          .catch(error => {
+            console.error('Error creating assignment:', error);
+            alert('An error occurred while creating the assignment. Please try again.');
+          });
+        });
+      }
+    } else if (userType === 'student') {
+      // Load dashboard assignments list for students
+      fetch('/api/student/assignments')
+        .then(response => response.json())
+        .then(data => {
+          const container = document.getElementById('dashboard-student-assignments-list');
+          if (container) {
+            if (data.assignments.length === 0) {
+              container.innerHTML = '<p class="text-center text-muted">No assignments found. Join an assignment to get started.</p>';
+            } else {
+              let html = '<div class="list-group">';
+              const limitedAssignments = data.assignments.slice(0, 3);
+              
+              limitedAssignments.forEach(assignment => {
+                const statusBadge = assignment.completed 
+                  ? '<span class="badge bg-success">Completed</span>' 
+                  : '<span class="badge bg-warning text-dark">In Progress</span>';
+                
+                html += `
+                  <div class="list-group-item">
+                    <h6 class="mb-1">${assignment.title}</h6>
+                    <div class="d-flex justify-content-between align-items-center">
+                      <small>Scenario: ${assignment.scenario}</small>
+                      ${statusBadge}
+                    </div>
+                  </div>
+                `;
+              });
+              
+              if (data.assignments.length > 3) {
+                html += `
+                  <div class="list-group-item text-center">
+                    <a href="/student/assignments">View all ${data.assignments.length} assignments</a>
+                  </div>
+                `;
+              }
+              
+              html += '</div>';
+              container.innerHTML = html;
+            }
+          }
+        })
+        .catch(error => {
+          console.error('Error loading student assignments:', error);
+          
+          const container = document.getElementById('dashboard-student-assignments-list');
+          if (container) {
+            container.innerHTML = '<p class="text-center text-danger">Error loading assignments. Please try again.</p>';
+          }
+        });
+      
+      // Initialize join assignment form
+      const joinAssignmentForm = document.getElementById('join-assignment-form');
+      if (joinAssignmentForm) {
+        joinAssignmentForm.addEventListener('submit', function(e) {
+          e.preventDefault();
+          
+          const code = document.getElementById('assignment-code').value.trim();
+          
+          if (!code) {
+            alert('Please enter an assignment code');
+            return;
+          }
+          
+          fetch('/api/join-assignment', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              access_code: code
+            })
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              alert('Successfully joined assignment!');
+              // Redirect to assignments page
+              window.location.href = '/student/assignments';
+            } else {
+              alert(`Error: ${data.message || 'Invalid assignment code'}`);
+            }
+          })
+          .catch(error => {
+            console.error('Error joining assignment:', error);
+            alert('An error occurred. Please try again.');
+          });
+        });
+      }
     }
   });
 </script>
