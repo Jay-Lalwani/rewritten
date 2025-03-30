@@ -1,7 +1,7 @@
 # Rewritten. Learn History by Living It.
 
 - Try it out: https://rewritten.tech
-- Demo: ...
+- Demo (YouTube): https://youtu.be/c08dxqRpV20
 - GitHub: https://github.com/Jay-Lalwani/rewritten
 
 Rewritten is an interactive educational tool that transforms traditional history lessons into engaging, decision-driven experiences. It helps students learn by placing them directly inside historical events and challenging them to reshape the course of history through their choices. It blends storytelling, video generation, and factual reinforcement into a single learning experience.
