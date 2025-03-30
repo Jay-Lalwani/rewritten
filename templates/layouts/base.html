@@ -23,10 +23,12 @@
     {% block extra_css %}{% endblock %}
   </head>
   <body>
-    <div class="container-fluid p-0">
-      {% include 'components/header.html' %}
+    <div class="app-container">
+      {% include 'components/sidebar.html' %}
       
-      {% block content %}{% endblock %}
+      <div class="main-content">
+        {% block content %}{% endblock %}
+      </div>
     </div>
 
     {% include 'components/footer.html' %}

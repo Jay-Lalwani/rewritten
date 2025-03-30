@@ -107,5 +107,20 @@ const ApiService = {
         console.error('Error getting progress:', error);
         throw error;
       });
+  },
+  
+  /**
+   * Get the first frame preview for a scenario
+   * @param {string} scenarioName - The name of the scenario
+   * @returns {Promise} Promise resolving to preview data
+   */
+  getScenarioPreview: function(scenarioName) {
+    return fetch(`/api/scenarios/${encodeURIComponent(scenarioName)}/preview`)
+      .then(response => response.json())
+      .catch(error => {
+        console.error('Error getting scenario preview:', error);
+        // Return a default preview
+        return { preview_url: '/static/images/placeholder.jpg' };
+      });
   }
 }; 

@@ -1,15 +1,33 @@
 {% extends 'layouts/base.html' %}
 
 {% block content %}
-  {% include 'components/game-container.html' %}
-  {% include 'components/start-screen.html' %}
-  {% include 'components/scenario-modal.html' %}
-  {% include 'components/loading-screen.html' %}
+  <div id="section-join" class="section-content active">
+    {% include 'components/join-screen.html' %}
+  </div>
+  
+  <div id="section-teacher" class="section-content">
+    {% include 'components/teacher-dashboard.html' %}
+  </div>
+  
+  <div id="section-gallery" class="section-content">
+    {% include 'components/gallery-screen.html' %}
+    {% include 'components/scenario-modal.html' %}
+  </div>
+  
+  <div id="section-profile" class="section-content">
+    {% include 'components/profile-screen.html' %}
+  </div>
+  
+  <div id="section-game" class="section-content">
+    {% include 'components/game-container.html' %}
+    {% include 'components/loading-screen.html' %}
+  </div>
 {% endblock %}
 
 {% block scripts %}
   <script src="{{ url_for('static', filename='js/components/scenario.js') }}"></script>
   <script src="{{ url_for('static', filename='js/components/game.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/components/teacher.js') }}"></script>
   <script src="{{ url_for('static', filename='js/services/api.js') }}"></script>
   <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 {% endblock %}

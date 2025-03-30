@@ -66,15 +66,22 @@ const ScenarioComponent = {
    */
   addScenarioCard: function(scenario) {
     const scenarioCol = Utils.createElement('div', { className: 'col-lg-6 col-md-8 mb-4' });
+    
+    // Initial card structure
     scenarioCol.innerHTML = `
       <div class="card scenario-card" data-scenario="${scenario}">
-        <div class="card-body">
-          <div class="scenario-icon"><i class="fas fa-landmark"></i></div>
-          <h5 class="card-title">${scenario}</h5>
-          <button class="btn btn-sm btn-danger delete-scenario" data-scenario="${scenario}">
-            <i class="fas fa-trash-alt"></i>
-          </button>
+        <div class="card-subtitle">Historical Moment</div>
+        <h5 class="card-title">${scenario}</h5>
+        <div class="scenario-image-container">
+          <div class="placeholder">
+            <i class="fas fa-image placeholder-icon"></i>
+            <span class="placeholder-text">Loading preview...</span>
+          </div>
+          <img src="" alt="${scenario}" class="scenario-image" style="display: none;">
         </div>
+        <button class="btn btn-sm btn-danger delete-scenario" data-scenario="${scenario}">
+          <i class="fas fa-trash-alt"></i>
+        </button>
       </div>
     `;
 
@@ -97,6 +104,46 @@ const ScenarioComponent = {
     });
 
     this.scenarioContainer.appendChild(scenarioCol);
+    
+    // Fetch scenario preview image
+    ApiService.getScenarioPreview(scenario)
+      .then(data => {
+        if (data && data.preview_url) {
+          const imgElement = card.querySelector('.scenario-image');
+          const placeholder = card.querySelector('.placeholder');
+          
+          if (imgElement) {
+            // Set up image onload event to hide placeholder when image loads
+            imgElement.onload = function() {
+              if (placeholder) placeholder.style.display = 'none';
+              imgElement.style.display = 'block';
+            };
+            
+            // Set the image source to trigger loading
+            imgElement.src = data.preview_url;
+            
+            // If image fails to load, show error in placeholder
+            imgElement.onerror = function() {
+              if (placeholder) {
+                const icon = placeholder.querySelector('.placeholder-icon');
+                const text = placeholder.querySelector('.placeholder-text');
+                if (icon) icon.className = 'fas fa-exclamation-circle placeholder-icon';
+                if (text) text.textContent = 'Preview unavailable';
+              }
+            };
+          }
+        }
+      })
+      .catch(err => {
+        console.log('Could not load preview for scenario:', scenario, err);
+        const placeholder = card.querySelector('.placeholder');
+        if (placeholder) {
+          const icon = placeholder.querySelector('.placeholder-icon');
+          const text = placeholder.querySelector('.placeholder-text');
+          if (icon) icon.className = 'fas fa-exclamation-circle placeholder-icon';
+          if (text) text.textContent = 'Preview unavailable';
+        }
+      });
   },
 
   /**

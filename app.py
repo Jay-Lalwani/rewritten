@@ -407,5 +407,95 @@ def delete_scenario(scenario_name):
     )
 
 
+@app.route("/api/scenarios/<scenario_name>/preview", methods=["GET"])
+def get_scenario_preview(scenario_name):
+    """Get the preview image for a scenario.
+    
+    This finds the first frame image or uses the media URL from the scenario's data.
+    """
+    if not scenario_name:
+        return jsonify({"error": "No scenario name provided"}), 400
+        
+    db = get_db()
+    
+    # First try to find any cache entries for this scenario
+    cache_row = db.execute(
+        "SELECT next_scene_prompts, next_media_urls FROM scene_cache "
+        "WHERE scenario = ? LIMIT 1",
+        (scenario_name,)
+    ).fetchone()
+    
+    if cache_row:
+        # Find the first frame from the cached scene prompts
+        try:
+            scene_prompts = json.loads(cache_row["next_scene_prompts"])
+            media_data = json.loads(cache_row["next_media_urls"])
+            
+            # If we have individual videos, get the first one's corresponding first frame
+            if "individual_videos" in media_data and media_data["individual_videos"]:
+                # Get the video URL
+                video_url = media_data["individual_videos"][0]["video_url"]
+                
+                # Convert to a preview image path (attempt to find the original first frame)
+                # First check if the scene has a first_frame_prompt
+                if "scenes" in scene_prompts and scene_prompts["scenes"]:
+                    # The first frame would be in static/images with a UUID filename
+                    # Try to find a matching image file
+                    static_dir = os.path.join(os.path.dirname(__file__), 'static', 'images')
+                    # Return a placeholder since we don't have a direct mapping from video to first frame
+                    preview_url = "/static/images/placeholder.jpg"
+                    return jsonify({"preview_url": preview_url})
+                
+                # If we can't find the specific first frame, generate a frame from the video
+                video_path = os.path.join(os.path.dirname(__file__), video_url.lstrip('/'))
+                if os.path.exists(video_path):
+                    # Extract the first frame from the video using ffmpeg
+                    static_dir = os.path.join(os.path.dirname(__file__), 'static', 'previews')
+                    os.makedirs(static_dir, exist_ok=True)
+                    
+                    preview_filename = f"{uuid.uuid4()}.jpg"
+                    preview_path = os.path.join(static_dir, preview_filename)
+                    preview_url = f"/static/previews/{preview_filename}"
+                    
+                    try:
+                        # Use ffmpeg to extract the first frame
+                        ffmpeg_cmd = ["ffmpeg", "-i", video_path, "-ss", "00:00:00", "-vframes", "1", preview_path]
+                        import subprocess
+                        result = subprocess.run(ffmpeg_cmd, capture_output=True, text=True)
+                        
+                        if result.returncode == 0 and os.path.exists(preview_path):
+                            return jsonify({"preview_url": preview_url})
+                    except Exception as e:
+                        print(f"Error extracting frame: {e}")
+            
+            # If we have a combined video, just get a frame from that
+            if "combined_video" in media_data and media_data["combined_video"]:
+                # Same process as above but for the combined video
+                video_path = os.path.join(os.path.dirname(__file__), media_data["combined_video"].lstrip('/'))
+                if os.path.exists(video_path):
+                    static_dir = os.path.join(os.path.dirname(__file__), 'static', 'previews')
+                    os.makedirs(static_dir, exist_ok=True)
+                    
+                    preview_filename = f"{uuid.uuid4()}.jpg"
+                    preview_path = os.path.join(static_dir, preview_filename)
+                    preview_url = f"/static/previews/{preview_filename}"
+                    
+                    try:
+                        ffmpeg_cmd = ["ffmpeg", "-i", video_path, "-ss", "00:00:00", "-vframes", "1", preview_path]
+                        import subprocess
+                        result = subprocess.run(ffmpeg_cmd, capture_output=True, text=True)
+                        
+                        if result.returncode == 0 and os.path.exists(preview_path):
+                            return jsonify({"preview_url": preview_url})
+                    except Exception as e:
+                        print(f"Error extracting frame: {e}")
+                        
+        except Exception as e:
+            print(f"Error generating preview: {e}")
+    
+    # If we couldn't get a frame, return a placeholder
+    return jsonify({"preview_url": "/static/images/placeholder.jpg"})
+
+
 if __name__ == "__main__":
     app.run(debug=True, port=5001)

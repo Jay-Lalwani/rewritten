@@ -1,0 +1,35 @@
+<!-- Sidebar Component -->
+<div class="sidebar-container">
+  <div class="sidebar-header">
+    <div class="sidebar-logo">
+      <span class="sidebar-logo-text">Rewritten</span>
+      <img src="{{ url_for('static', filename='images/quill-logo.svg') }}" alt="AdaptED" class="sidebar-logo-img">
+    </div>
+  </div>
+  
+  <nav class="sidebar-nav">
+    <a class="sidebar-nav-item active" data-section="join">
+      <i class="fas fa-chart-bar"></i>
+      <span>Join</span>
+    </a>
+    <a class="sidebar-nav-item" data-section="teacher">
+      <i class="fas fa-chalkboard-teacher"></i>
+      <span>Teacher Dashboard</span>
+    </a>
+    <a class="sidebar-nav-item" data-section="gallery">
+      <i class="fas fa-pen"></i>
+      <span>Story Gallery</span>
+    </a>
+    <a class="sidebar-nav-item" data-section="profile">
+      <i class="fas fa-user"></i>
+      <span>Profile</span>
+    </a>
+  </nav>
+  
+  <div class="sidebar-footer">
+    <a href="{{ url_for('logout') }}" class="sidebar-logout-btn">
+      <i class="fas fa-sign-out-alt me-1"></i>
+      <span>Logout</span>
+    </a>
+  </div>
+</div> 
