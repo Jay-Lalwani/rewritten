@@ -5,8 +5,14 @@
     <a href="{{ url_for('index') }}" class="btn btn-outline-secondary btn-sm me-2">
       <i class="fas fa-home me-1"></i>Home
     </a>
+    {% if 'user' in session %}
     <a href="{{ url_for('logout') }}" class="btn btn-outline-secondary btn-sm">
       <i class="fas fa-sign-out-alt me-1"></i>Logout
     </a>
+    {% else %}
+    <a href="{{ url_for('index') }}" class="btn btn-outline-secondary btn-sm">
+      <i class="fas fa-sign-in-alt me-1"></i>Login
+    </a>
+    {% endif %}
   </div>
 </header> 

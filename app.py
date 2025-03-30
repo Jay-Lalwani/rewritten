@@ -162,6 +162,12 @@ def index():
     return render_template("role_select.html")
 
 
+@app.route("/view-scenarios")
+def view_scenarios():
+    """View all scenarios without requiring login."""
+    return render_template("index.html")
+
+
 @app.route("/teacher/dashboard")
 @requires_auth
 def teacher_dashboard():
