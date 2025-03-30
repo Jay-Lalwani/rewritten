@@ -272,6 +272,15 @@ def concatenate_videos(video_urls):
             
             print(f"Videos concatenated successfully to {output_path}")
             
+            # Delete individual videos after successful concatenation
+            for video_path in video_paths:
+                try:
+                    if os.path.exists(video_path):
+                        os.remove(video_path)
+                        print(f"Deleted individual video: {video_path}")
+                except Exception as del_err:
+                    print(f"Error deleting individual video {video_path}: {del_err}")
+            
             # Clean up the file list
             os.remove(file_list_path)
             
