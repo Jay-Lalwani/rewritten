@@ -22,7 +22,7 @@
     />
     {% block extra_css %}{% endblock %}
   </head>
-  <body>
+  <body {% if session.get('user_type') %}data-user-type="{{ session.get('user_type') }}"{% endif %}>
     <div class="container-fluid p-0">
       {% include 'components/header.html' %}
       

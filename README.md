@@ -89,4 +89,3 @@ Rewritten is containerized using **Docker**, with services defined via **Docker 
 - Docker images are built and distributed via **AWS Elastic Container Registry (ECR)**
 - **Traefik** handles HTTPS termination with **Let’s Encrypt**, dynamic routing, and load balancing
 - Domain and DNS services are managed through **Cloudflare**, which also provides DDoS protection and proxying
-

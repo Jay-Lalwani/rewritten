@@ -8,6 +8,7 @@ from authlib.integrations.flask_client import OAuth
 from dotenv import load_dotenv
 from flask import Flask, jsonify, redirect, render_template, request, session, url_for
 from flask_cors import CORS
+from sqlalchemy import text
 
 from api.media_generator import concatenate_videos, generate_scene_videos
 from api.producer_agent import generate_scene_prompts
@@ -21,6 +22,9 @@ from database.models import (
     SceneCache,
     Teacher,
     Student,
+    Assignment,
+    student_assignment_progress,
+    QuestionResponse,
 )
 import database
 from api.tts_agent import generate_speech
@@ -117,13 +121,13 @@ def callback():
         # Existing teacher
         session["user_type"] = "teacher"
         session["user_id"] = teacher.id
-        return redirect(url_for("teacher_dashboard"))
+        return redirect(url_for("dashboard"))  # Redirect to unified dashboard
 
     elif student:
         # Existing student
         session["user_type"] = "student"
         session["user_id"] = student.id
-        return redirect(url_for("student_dashboard"))
+        return redirect(url_for("dashboard"))  # Redirect to unified dashboard
 
     else:
         # New user - create based on role selection
@@ -139,7 +143,7 @@ def callback():
 
             session["user_type"] = "teacher"
             session["user_id"] = new_teacher.id
-            return redirect(url_for("teacher_dashboard"))
+            return redirect(url_for("dashboard"))  # Redirect to unified dashboard
 
         elif role == "student":
             new_student = Student(
@@ -153,7 +157,7 @@ def callback():
 
             session["user_type"] = "student"
             session["user_id"] = new_student.id
-            return redirect(url_for("student_dashboard"))
+            return redirect(url_for("dashboard"))  # Redirect to unified dashboard
 
     # Default fallback
     return redirect(url_for("index"))
@@ -163,11 +167,8 @@ def callback():
 def index():
     """Render the role selection page."""
     if "user" in session and "user_type" in session:
-        # If already logged in, redirect to appropriate dashboard
-        if session["user_type"] == "teacher":
-            return redirect(url_for("teacher_dashboard"))
-        elif session["user_type"] == "student":
-            return redirect(url_for("student_dashboard"))
+        # If already logged in, redirect to the unified dashboard
+        return redirect(url_for("dashboard"))
 
     return render_template("role_select.html")
 
@@ -178,28 +179,22 @@ def view_scenarios():
     return render_template("index.html")
 
 
-@app.route("/teacher/dashboard")
+@app.route("/dashboard")
 @requires_auth
-def teacher_dashboard():
-    if session.get("user_type") != "teacher":
+def dashboard():
+    """Unified dashboard for both teachers and students."""
+    user_type = session.get("user_type")
+    user_id = session.get("user_id")
+    
+    if user_type == "teacher":
+        teacher = Teacher.query.get(user_id)
+        return render_template("dashboard.html", user=teacher, user_type="teacher")
+    elif user_type == "student":
+        student = Student.query.get(user_id)
+        return render_template("dashboard.html", user=student, user_type="student")
+    else:
+        # If user type is not recognized, redirect to index
         return redirect(url_for("index"))
-
-    teacher_id = session.get("user_id")
-    teacher = Teacher.query.get(teacher_id)
-
-    return render_template("teacher_dashboard.html", teacher=teacher)
-
-
-@app.route("/student/dashboard")
-@requires_auth
-def student_dashboard():
-    if session.get("user_type") != "student":
-        return redirect(url_for("index"))
-
-    student_id = session.get("user_id")
-    student = Student.query.get(student_id)
-
-    return render_template("student_dashboard.html", student=student)
 
 
 @app.route("/logout")
@@ -475,7 +470,10 @@ def get_scenarios():
     # Get distinct scenarios using SQLAlchemy
     scenarios = db.session.query(GameSession.scenario).distinct().all()
     scenario_list = [row[0] for row in scenarios]
-
+    
+    # Filter out the uppercase 'Apollo 11' scenario
+    scenario_list = [scenario for scenario in scenario_list if scenario != "Apollo 11"]
+    
     return jsonify({"scenarios": scenario_list})
 
 
@@ -501,10 +499,15 @@ def add_scenario():
 
 
 @app.route("/api/scenarios/<scenario_name>", methods=["DELETE"])
+@requires_auth
 def delete_scenario(scenario_name):
     """Delete a scenario from the database."""
     if not scenario_name:
         return jsonify({"error": "No scenario name provided"}), 400
+        
+    # Only teachers can delete scenarios
+    if session.get("user_type") != "teacher":
+        return jsonify({"error": "Only teachers can delete scenarios"}), 403
 
     # Delete scenario sessions using SQLAlchemy
     GameSession.query.filter_by(scenario=scenario_name).delete()
@@ -551,6 +554,529 @@ def get_quiz():
         print(f"Error generating quiz question: {e}")
         # Fall back to static questions if generation fails
         return jsonify({"question": get_fallback_question()})
+
+
+# --------------------------
+# Assignment Management APIs
+# --------------------------
+import random
+import string
+
+def generate_access_code(length=6):
+    """Generate a random access code for assignments"""
+    characters = string.ascii_uppercase + string.digits
+    while True:
+        code = ''.join(random.choice(characters) for _ in range(length))
+        # Check if code already exists
+        existing = Assignment.query.filter_by(access_code=code).first()
+        if not existing:
+            return code
+
+
+@app.route("/api/assignments", methods=["POST"])
+@requires_auth
+def create_assignment():
+    """Create a new assignment with a scenario"""
+    if session.get("user_type") != "teacher":
+        return jsonify({"error": "Only teachers can create assignments"}), 403
+    
+    teacher_id = session.get("user_id")
+    
+    # Get scenario from the request
+    scenario = request.json.get("scenario", "Apollo 11")
+    title = request.json.get("title", f"Assignment: {scenario}")
+    
+    # Generate a unique access code
+    access_code = generate_access_code()
+    
+    # Create the assignment
+    assignment = Assignment(
+        title=title,
+        scenario=scenario,
+        access_code=access_code,
+        teacher_id=teacher_id
+    )
+    
+    db.session.add(assignment)
+    db.session.commit()
+    
+    return jsonify({
+        "success": True, 
+        "assignment": {
+            "id": assignment.id,
+            "title": assignment.title,
+            "scenario": assignment.scenario,
+            "access_code": assignment.access_code
+        }
+    })
+
+
+@app.route("/api/assignments", methods=["GET"])
+@requires_auth
+def get_teacher_assignments():
+    """Get all assignments for the current teacher"""
+    if session.get("user_type") != "teacher":
+        return jsonify({"error": "Only teachers can view their assignments"}), 403
+    
+    teacher_id = session.get("user_id")
+    assignments = Assignment.query.filter_by(teacher_id=teacher_id).all()
+    
+    assignment_list = []
+    for assignment in assignments:
+        # Count enrolled students
+        student_count = db.session.query(student_assignment_progress).filter_by(
+            assignment_id=assignment.id).count()
+            
+        assignment_list.append({
+            "id": assignment.id,
+            "title": assignment.title,
+            "scenario": assignment.scenario,
+            "access_code": assignment.access_code,
+            "created_at": assignment.created_at.isoformat(),
+            "student_count": student_count,
+            "is_active": assignment.is_active
+        })
+    
+    return jsonify({"assignments": assignment_list})
+
+
+@app.route("/api/assignments/<assignment_id>", methods=["GET"])
+@requires_auth
+def get_assignment_details(assignment_id):
+    """Get details of a specific assignment including student progress"""
+    if session.get("user_type") != "teacher":
+        return jsonify({"error": "Only teachers can view assignment details"}), 403
+    
+    teacher_id = session.get("user_id")
+    assignment = Assignment.query.filter_by(id=assignment_id, teacher_id=teacher_id).first()
+    
+    if not assignment:
+        return jsonify({"error": "Assignment not found"}), 404
+    
+    # Get all students enrolled in this assignment
+    student_progress = db.session.query(
+        Student, student_assignment_progress
+    ).join(
+        student_assignment_progress, 
+        Student.id == student_assignment_progress.c.student_id
+    ).filter(
+        student_assignment_progress.c.assignment_id == assignment_id
+    ).all()
+    
+    students_data = []
+    for student, progress in student_progress:
+        students_data.append({
+            "id": student.id,
+            "name": student.name,
+            "email": student.email,
+            "completed": progress.completed,
+            "score": progress.score,
+            "last_scene_id": progress.last_scene_id,
+            "last_updated": progress.updated_at.isoformat()
+        })
+    
+    return jsonify({
+        "assignment": {
+            "id": assignment.id,
+            "title": assignment.title,
+            "scenario": assignment.scenario,
+            "access_code": assignment.access_code,
+            "created_at": assignment.created_at.isoformat(),
+            "is_active": assignment.is_active,
+            "students": students_data
+        }
+    })
+
+
+@app.route("/api/join-assignment", methods=["POST"])
+@requires_auth
+def join_assignment():
+    """Allow a student to join an assignment using an access code"""
+    if session.get("user_type") != "student":
+        return jsonify({"error": "Only students can join assignments"}), 403
+    
+    student_id = session.get("user_id")
+    access_code = request.json.get("access_code")
+    
+    if not access_code:
+        return jsonify({"error": "Access code is required"}), 400
+    
+    # Find the assignment by access code
+    assignment = Assignment.query.filter_by(access_code=access_code, is_active=True).first()
+    
+    if not assignment:
+        return jsonify({"error": "Invalid or expired access code"}), 404
+    
+    # Check if student is already enrolled
+    existing = db.session.query(student_assignment_progress).filter_by(
+        student_id=student_id, assignment_id=assignment.id).first()
+    
+    # Create a new session ID
+    session_id = str(uuid.uuid4())
+    
+    if existing:
+        # Student is already enrolled, but we'll create a new session for them
+        # Update their current_session_id
+        stmt = student_assignment_progress.update().where(
+            (student_assignment_progress.c.student_id == student_id) & 
+            (student_assignment_progress.c.assignment_id == assignment.id)
+        ).values(current_session_id=session_id)
+        db.session.execute(stmt)
+    else:
+        # Enroll the student
+        stmt = student_assignment_progress.insert().values(
+            student_id=student_id,
+            assignment_id=assignment.id,
+            current_session_id=session_id
+        )
+        db.session.execute(stmt)
+    
+    # Start a game session for this scenario with the student and assignment IDs
+    game_session = GameSession(
+        id=session_id,
+        scenario=assignment.scenario,
+        current_scene_id=0,
+        student_id=student_id,
+        assignment_id=assignment.id
+    )
+    db.session.add(game_session)
+    db.session.commit()
+    
+    # Store the session ID
+    session["session_id"] = session_id
+    
+    return jsonify({
+        "success": True,
+        "assignment": {
+            "id": assignment.id,
+            "title": assignment.title,
+            "scenario": assignment.scenario,
+            "teacher_name": assignment.teacher.name
+        },
+        "session_id": session_id
+    })
+
+
+@app.route("/api/student/assignments", methods=["GET"])
+@requires_auth
+def get_student_assignments():
+    """Get all assignments for the current student"""
+    if session.get("user_type") != "student":
+        return jsonify({"error": "Only students can view their assignments"}), 403
+    
+    student_id = session.get("user_id")
+    
+    # Get assignment IDs for this student using parameterized query
+    progress_records = db.session.execute(
+        text("SELECT assignment_id, completed, score, last_scene_id FROM student_assignment_progress WHERE student_id = :student_id"),
+        {"student_id": student_id}
+    ).fetchall()
+    
+    # Create a dictionary of progress info keyed by assignment_id
+    progress_by_assignment = {
+        record[0]: {
+            "completed": record[1],
+            "score": record[2],
+            "last_scene_id": record[3]
+        }
+        for record in progress_records
+    }
+    
+    # Get the actual assignments
+    assignment_ids = list(progress_by_assignment.keys())
+    if not assignment_ids:
+        return jsonify({"assignments": []})
+    
+    assignments = Assignment.query.filter(Assignment.id.in_(assignment_ids)).all()
+    
+    # Build the response
+    assignment_list = []
+    for assignment in assignments:
+        progress = progress_by_assignment.get(assignment.id, {})
+        assignment_list.append({
+            "id": assignment.id,
+            "title": assignment.title,
+            "scenario": assignment.scenario,
+            "teacher_name": assignment.teacher.name,
+            "completed": progress.get("completed", False),
+            "score": progress.get("score"),
+            "last_scene_id": progress.get("last_scene_id", 0)
+        })
+    
+    return jsonify({"assignments": assignment_list})
+
+
+@app.route("/student/assignments")
+@requires_auth
+def student_assignments_page():
+    """Show a student their assignments with play options"""
+    if session.get("user_type") != "student":
+        return redirect(url_for("dashboard"))
+    
+    student_id = session.get("user_id")
+    student = Student.query.get(student_id)
+    
+    return render_template("student_assignments.html", user=student)
+
+
+@app.route("/api/student/progress", methods=["GET"])
+@requires_auth
+def get_student_progress():
+    """Get progress data for the current student including quiz results"""
+    try:
+        if session.get("user_type") != "student":
+            return jsonify({"error": "Only students can view their progress"}), 403
+        
+        student_id = session.get("user_id")
+        
+        # Get all assignments for this student
+        progress_records = db.session.execute(
+            text("SELECT * FROM student_assignment_progress WHERE student_id = :student_id"),
+            {"student_id": student_id}
+        ).fetchall()
+        
+        # Get all quiz responses for this student
+        quiz_responses = QuestionResponse.query.filter_by(student_id=student_id).all()
+        
+        # Organize quiz data by assignment
+        quiz_data_by_assignment = {}
+        for response in quiz_responses:
+            if response.assignment_id not in quiz_data_by_assignment:
+                quiz_data_by_assignment[response.assignment_id] = []
+            
+            quiz_data_by_assignment[response.assignment_id].append({
+                "question": response.question_text,
+                "answer": response.student_answer,
+                "correct": response.is_correct,
+                "score": response.score,
+                "scene_id": response.scene_id,
+                "date": response.created_at.isoformat()
+            })
+        
+        # Process the assignments with progress data
+        progress_data = []
+        for record in progress_records:
+            assignment_id = record.assignment_id
+            assignment = Assignment.query.get(assignment_id)
+            
+            if assignment:
+                progress_data.append({
+                    "assignment_id": assignment_id,
+                    "title": assignment.title,
+                    "scenario": assignment.scenario,
+                    "teacher_name": assignment.teacher.name,
+                    "completed": record.completed,
+                    "score": record.score,
+                    "last_scene_id": record.last_scene_id,
+                    "quiz_responses": quiz_data_by_assignment.get(assignment_id, [])
+                })
+        
+        # Aggregate statistics
+        total_assignments = len(progress_data)
+        completed_assignments = sum(1 for item in progress_data if item["completed"])
+        
+        # Calculate average score safely
+        scores = [item["score"] for item in progress_data if item["score"] is not None]
+        avg_score = sum(scores) / len(scores) if scores else 0
+        
+        # Calculate quiz statistics safely
+        total_questions = sum(len(item["quiz_responses"]) for item in progress_data)
+        correct_answers = sum(sum(1 for q in item["quiz_responses"] if q["correct"]) for item in progress_data)
+        quiz_accuracy = (correct_answers / total_questions) * 100 if total_questions > 0 else 0
+        
+        return jsonify({
+            "progress_items": progress_data,
+            "statistics": {
+                "total_assignments": total_assignments,
+                "completed_assignments": completed_assignments,
+                "completion_rate": (completed_assignments / total_assignments * 100) if total_assignments > 0 else 0,
+                "average_score": avg_score,
+                "total_questions_answered": total_questions,
+                "correct_answers": correct_answers,
+                "quiz_accuracy": quiz_accuracy
+            }
+        })
+    except Exception as e:
+        app.logger.error(f"Error in get_student_progress: {str(e)}")
+        return jsonify({
+            "error": "An error occurred while fetching progress data",
+            "message": str(e),
+            "progress_items": [],
+            "statistics": {
+                "total_assignments": 0,
+                "completed_assignments": 0,
+                "completion_rate": 0,
+                "average_score": 0,
+                "total_questions_answered": 0,
+                "correct_answers": 0,
+                "quiz_accuracy": 0
+            }
+        })
+
+
+@app.route("/api/teacher/student-progress", methods=["GET"])
+@requires_auth
+def get_teacher_student_progress():
+    """Get progress data for all students in a teacher's assignments"""
+    try:
+        if session.get("user_type") != "teacher":
+            return jsonify({"error": "Only teachers can view student progress"}), 403
+        
+        teacher_id = session.get("user_id")
+        app.logger.info(f"Fetching progress data for teacher ID: {teacher_id}")
+        
+        # Get all assignments for this teacher
+        assignments = Assignment.query.filter_by(teacher_id=teacher_id).all()
+        assignment_ids = [a.id for a in assignments]
+        
+        app.logger.info(f"Found {len(assignments)} assignments: {assignment_ids}")
+        
+        if not assignment_ids:
+            # No assignments found, return empty data
+            return jsonify({"assignments": [], "students": [], "quiz_data": {"total_questions": 0, "correct_answers": 0, "by_assignment": {}, "by_student": {}}})
+        
+        # Query all student progress records for the teacher's assignments with a proper SQL approach
+        student_assignments_data = []
+        
+        # Instead of using placeholders with a direct list, use SQLAlchemy's ORM
+        student_assignments_data = db.session.query(
+            Student.id, 
+            Student.name, 
+            Student.email,
+            student_assignment_progress.c.assignment_id,
+            student_assignment_progress.c.completed,
+            student_assignment_progress.c.score,
+            student_assignment_progress.c.last_scene_id
+        ).join(
+            student_assignment_progress,
+            Student.id == student_assignment_progress.c.student_id
+        ).filter(
+            student_assignment_progress.c.assignment_id.in_(assignment_ids)
+        ).all()
+        
+        app.logger.info(f"Found {len(student_assignments_data)} student-assignment records")
+        
+        # Get all quiz responses for these assignments
+        quiz_responses = QuestionResponse.query.filter(
+            QuestionResponse.assignment_id.in_(assignment_ids)
+        ).all()
+        
+        app.logger.info(f"Found {len(quiz_responses)} quiz responses")
+        
+        # Count student assignments and completed assignments by assignment ID
+        assignment_counts = {}
+        
+        # Process students
+        student_data = {}
+        for row in student_assignments_data:
+            student_id = row[0]
+            student_name = row[1]
+            student_email = row[2]
+            assignment_id = row[3]
+            completed = row[4]
+            score = row[5]
+            
+            # Process for assignment counts
+            if assignment_id not in assignment_counts:
+                assignment_counts[assignment_id] = {
+                    "total": 0,
+                    "completed": 0
+                }
+            
+            assignment_counts[assignment_id]["total"] += 1
+            if completed:
+                assignment_counts[assignment_id]["completed"] += 1
+            
+            # Process for student data
+            if student_id not in student_data:
+                student_data[student_id] = {
+                    "id": student_id,
+                    "name": student_name,
+                    "email": student_email,
+                    "assignments_completed": 0,
+                    "total_assignments": 0,
+                    "average_score": 0,
+                    "scores": []
+                }
+            
+            student_data[student_id]["total_assignments"] += 1
+            if completed:
+                student_data[student_id]["assignments_completed"] += 1
+            
+            if score is not None:
+                student_data[student_id]["scores"].append(score)
+        
+        # Calculate average scores
+        for student_id in student_data:
+            scores = student_data[student_id]["scores"]
+            if scores:
+                student_data[student_id]["average_score"] = sum(scores) / len(scores)
+            else:
+                student_data[student_id]["average_score"] = 0
+        
+        # Process quiz data
+        quiz_data = {
+            "total_questions": len(quiz_responses),
+            "correct_answers": sum(1 for r in quiz_responses if r.is_correct),
+            "by_assignment": {},
+            "by_student": {}
+        }
+        
+        # Organize quiz data by assignment
+        for response in quiz_responses:
+            if response.assignment_id not in quiz_data["by_assignment"]:
+                quiz_data["by_assignment"][response.assignment_id] = {
+                    "total": 0,
+                    "correct": 0
+                }
+            
+            quiz_data["by_assignment"][response.assignment_id]["total"] += 1
+            if response.is_correct:
+                quiz_data["by_assignment"][response.assignment_id]["correct"] += 1
+        
+        # Organize quiz data by student
+        for response in quiz_responses:
+            if response.student_id not in quiz_data["by_student"]:
+                quiz_data["by_student"][response.student_id] = {
+                    "total": 0,
+                    "correct": 0
+                }
+            
+            quiz_data["by_student"][response.student_id]["total"] += 1
+            if response.is_correct:
+                quiz_data["by_student"][response.student_id]["correct"] += 1
+        
+        # Process assignments
+        assignment_data = []
+        for assignment in assignments:
+            counts = assignment_counts.get(assignment.id, {"total": 0, "completed": 0})
+            student_count = counts["total"]
+            completion_count = counts["completed"]
+            completion_rate = (completion_count / max(1, student_count)) * 100
+            
+            assignment_data.append({
+                "id": assignment.id,
+                "title": assignment.title,
+                "scenario": assignment.scenario,
+                "student_count": student_count,
+                "completion_rate": completion_rate
+            })
+        
+        return jsonify({
+            "assignments": assignment_data,
+            "students": list(student_data.values()),
+            "quiz_data": quiz_data
+        })
+    
+    except Exception as e:
+        app.logger.error(f"Error in get_teacher_student_progress: {str(e)}")
+        return jsonify({
+            "error": "An error occurred while fetching progress data",
+            "message": str(e),
+            "assignments": [],
+            "students": [],
+            "quiz_data": {"total_questions": 0, "correct_answers": 0, "by_assignment": {}, "by_student": {}}
+        })
 
 
 if __name__ == "__main__":

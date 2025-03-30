@@ -1,6 +1,19 @@
 {% extends 'layouts/base.html' %}
 
 {% block content %}
+  {% if session.get('user_type') == 'student' %}
+  <div class="container py-3">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h2>Interactive Historical Scenario</h2>
+      <div>
+        <a href="{{ url_for('student_assignments_page') }}" class="btn btn-outline-primary">
+          <i class="fas fa-arrow-left me-2"></i>Back to My Assignments
+        </a>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+  
   {% include 'components/game-container.html' %}
   {% include 'components/start-screen.html' %}
   {% include 'components/scenario-modal.html' %}
@@ -14,4 +27,17 @@
   <script src="{{ url_for('static', filename='js/components/quiz.js') }}"></script>
   <script src="{{ url_for('static', filename='js/services/api.js') }}"></script>
   <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  <script>
+    // Check if we should auto-start a scenario (from student assignments)
+    document.addEventListener('DOMContentLoaded', function() {
+      const startScenario = localStorage.getItem('startScenario');
+      if (startScenario) {
+        console.log('Auto-starting scenario:', startScenario);
+        // Start the game with this scenario
+        GameComponent.startGame(startScenario);
+        // Clear the stored scenario to prevent auto-start on page refresh
+        localStorage.removeItem('startScenario');
+      }
+    });
+  </script>
 {% endblock %}
