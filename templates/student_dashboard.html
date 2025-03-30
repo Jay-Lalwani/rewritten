@@ -1,0 +1,31 @@
+{% extends 'layouts/base.html' %} {% block title %}Student Dashboard{% endblock
+%} {% block content %}
+<div class="container py-5">
+  <div class="row">
+    <div class="col-12">
+      <h1 class="mb-4">Student Dashboard</h1>
+      <div class="card mb-4">
+        <div class="card-body">
+          <h5 class="card-title">Welcome, {{ student.name }}</h5>
+          <p class="card-text">You are logged in as a student.</p>
+        </div>
+      </div>
+
+      <h2 class="mb-3">Your Classes</h2>
+      {% if student.classes %}
+      <div class="list-group">
+        {% for class in student.classes %}
+        <div class="list-group-item">
+          <h5>{{ class.name }}</h5>
+          <p>{{ class.subject }}</p>
+          <small>Teacher: {{ class.teacher.name }}</small>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p>You're not enrolled in any classes yet.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

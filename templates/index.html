@@ -1,32 +1,32 @@
 {% extends 'layouts/base.html' %}
-
 {% block content %}
-  <div id="section-join" class="section-content active">
+  <div id="section-join" class="section-content {% if active_section != 'gallery' and active_section != 'teacher' and active_section != 'profile' and active_section != 'game' %}active{% endif %}">
     {% include 'components/join-screen.html' %}
   </div>
   
-  <div id="section-teacher" class="section-content">
+  <div id="section-teacher" class="section-content {% if active_section == 'teacher' %}active{% endif %}">
     {% include 'components/teacher-dashboard.html' %}
   </div>
   
-  <div id="section-gallery" class="section-content">
+  <div id="section-gallery" class="section-content {% if active_section == 'gallery' %}active{% endif %}">
     {% include 'components/gallery-screen.html' %}
     {% include 'components/scenario-modal.html' %}
   </div>
   
-  <div id="section-profile" class="section-content">
+  <div id="section-profile" class="section-content {% if active_section == 'profile' %}active{% endif %}">
     {% include 'components/profile-screen.html' %}
   </div>
   
-  <div id="section-game" class="section-content">
+  <div id="section-game" class="section-content {% if active_section == 'game' %}active{% endif %}">
     {% include 'components/game-container.html' %}
     {% include 'components/loading-screen.html' %}
+    {% include 'components/quiz-question.html' %}
   </div>
 {% endblock %}
-
 {% block scripts %}
   <script src="{{ url_for('static', filename='js/components/scenario.js') }}"></script>
   <script src="{{ url_for('static', filename='js/components/game.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/components/quiz.js') }}"></script>
   <script src="{{ url_for('static', filename='js/components/teacher.js') }}"></script>
   <script src="{{ url_for('static', filename='js/services/api.js') }}"></script>
   <script src="{{ url_for('static', filename='js/app.js') }}"></script>

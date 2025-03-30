@@ -13,7 +13,12 @@ from flask_cors import CORS
 from api.media_generator import concatenate_videos, generate_scene_videos
 from api.producer_agent import generate_scene_prompts
 from api.writer_agent import generate_narrative
-from database.db import get_db, init_db
+from database.models import db, Session as GameSession, NarrativeData, ScenePrompt, MediaUrl, SceneCache, Teacher, Student
+import database
+from api.tts_agent import generate_speech
+from api.quiz_agent import generate_quiz_question, get_fallback_question
+# Keep import to get_db for legacy code that still uses it
+from database.db import get_db
 
 # Load environment variables
 load_dotenv()
@@ -21,6 +26,13 @@ load_dotenv()
 app = Flask(__name__, static_folder="static", template_folder="templates")
 CORS(app)
 app.secret_key = os.environ.get("APP_SECRET_KEY", "fallback-secret-key")
+
+# Initialize database with SQLAlchemy
+database.init_app(app)
+
+# Add Flask-Migrate support
+from flask_migrate import Migrate
+migrate = Migrate(app, db)
 
 # ---------------------
 # 2. Setup OAuth Client
@@ -63,6 +75,10 @@ def login():
     """
     Redirects the user to Auth0's hosted login page.
     """
+    # Store the role in session for later use
+    role = request.args.get("role", "student")
+    session["pending_role"] = role
+    
     return oauth.auth0.authorize_redirect(
         redirect_uri=url_for("callback", _external=True)
     )
@@ -76,7 +92,109 @@ def callback():
     """
     token = oauth.auth0.authorize_access_token()
     session["user"] = token
-    return redirect(url_for("index"))  # or any route you want after login
+    
+    # Get user details from Auth0
+    userinfo = token.get("userinfo", {})
+    auth0_id = userinfo.get("sub")
+    email = userinfo.get("email", "")
+    name = userinfo.get("name", "")
+    
+    # Get the pending role from session
+    role = session.pop("pending_role", None)
+    
+    # Check if user exists in our database
+    teacher = Teacher.query.filter_by(auth0_id=auth0_id).first()
+    student = Student.query.filter_by(auth0_id=auth0_id).first()
+    
+    if teacher:
+        # Existing teacher
+        session["user_type"] = "teacher"
+        session["user_id"] = teacher.id
+        return redirect(url_for("teacher_dashboard"))
+        
+    elif student:
+        # Existing student
+        session["user_type"] = "student"
+        session["user_id"] = student.id
+        return redirect(url_for("student_dashboard"))
+        
+    else:
+        # New user - create based on role selection
+        if role == "teacher":
+            new_teacher = Teacher(
+                name=name,
+                email=email,
+                auth0_id=auth0_id,
+                password=""  # Empty since Auth0 handles authentication
+            )
+            db.session.add(new_teacher)
+            db.session.commit()
+            
+            session["user_type"] = "teacher"
+            session["user_id"] = new_teacher.id
+            return redirect(url_for("teacher_dashboard"))
+            
+        elif role == "student":
+            new_student = Student(
+                name=name,
+                email=email,
+                auth0_id=auth0_id,
+                grade_level=0  # Default value
+            )
+            db.session.add(new_student)
+            db.session.commit()
+            
+            session["user_type"] = "student"
+            session["user_id"] = new_student.id
+            return redirect(url_for("student_dashboard"))
+    
+    # Default fallback
+    return redirect(url_for("index"))
+
+
+@app.route("/")
+def index():
+    """Render the role selection page."""
+    if "user" in session and "user_type" in session:
+        # If already logged in, redirect to appropriate dashboard
+        if session["user_type"] == "teacher":
+            return redirect(url_for("teacher_dashboard"))
+        elif session["user_type"] == "student":
+            return redirect(url_for("student_dashboard"))
+    
+    return render_template("role_select.html")
+
+
+@app.route("/view-scenarios")
+def view_scenarios():
+    """View all scenarios without requiring login."""
+    print("Rendering view-scenarios with gallery section active")
+    # Force the gallery section to be active
+    return render_template("index.html", active_section="gallery")
+
+
+@app.route("/teacher/dashboard")
+@requires_auth
+def teacher_dashboard():
+    if session.get("user_type") != "teacher":
+        return redirect(url_for("index"))
+        
+    teacher_id = session.get("user_id")
+    teacher = Teacher.query.get(teacher_id)
+    
+    return render_template("teacher_dashboard.html", teacher=teacher)
+
+
+@app.route("/student/dashboard")
+@requires_auth
+def student_dashboard():
+    if session.get("user_type") != "student":
+        return redirect(url_for("index"))
+        
+    student_id = session.get("user_id")
+    student = Student.query.get(student_id)
+    
+    return render_template("student_dashboard.html", student=student)
 
 
 @app.route("/logout")
@@ -94,18 +212,6 @@ def logout():
     )
 
 
-# Initialize database
-with app.app_context():
-    init_db()
-
-
-@app.route("/")
-# @requires_auth  # Auth0 authentication required
-def index():
-    """Render the main game page."""
-    return render_template("index.html")
-
-
 @app.route("/api/start", methods=["POST"])
 def start_game():
     """
@@ -115,7 +221,6 @@ def start_game():
       - empty decision_history
     Look up (scenario, partial_narrative) in cache. If found, reuse. Otherwise, generate.
     """
-    db = get_db()
     session_id = str(uuid.uuid4())
     session["session_id"] = session_id
 
@@ -130,26 +235,28 @@ def start_game():
     }
     partial_narrative_str = json.dumps(partial_narrative_obj)
 
-    # 2) Create a record for this session (placeholder)
-    db.execute(
-        "INSERT INTO sessions (id, scenario, current_scene_id, partial_narrative) VALUES (?, ?, 0, ?)",
-        (session_id, scenario, partial_narrative_str),
+    # 2) Create a record for this session using SQLAlchemy
+    game_session = GameSession(
+        id=session_id,
+        scenario=scenario,
+        current_scene_id=0,
+        partial_narrative=partial_narrative_str
     )
-    db.commit()
+    db.session.add(game_session)
+    db.session.commit()
 
-    # 3) Check the cache
-    cache_row = db.execute(
-        "SELECT next_narrative, next_scene_prompts, next_media_urls FROM scene_cache "
-        "WHERE scenario = ? AND partial_narrative = ?",
-        (scenario, partial_narrative_str),
-    ).fetchone()
+    # 3) Check the cache using SQLAlchemy query
+    cache_entry = SceneCache.query.filter_by(
+        scenario=scenario,
+        partial_narrative=partial_narrative_str
+    ).first()
 
-    if cache_row:
+    if cache_entry:
         # Reuse what we previously generated
         print("Found cached initial scene for scenario:", scenario)
-        new_narrative = json.loads(cache_row["next_narrative"])
-        scene_prompts = json.loads(cache_row["next_scene_prompts"])
-        media_data = json.loads(cache_row["next_media_urls"])
+        new_narrative = cache_entry.next_narrative_obj
+        scene_prompts = cache_entry.next_scene_prompts_obj
+        media_data = cache_entry.next_media_urls_obj
         cached = True
     else:
         # Generate a new initial scene
@@ -157,52 +264,61 @@ def start_game():
         scene_prompts = generate_scene_prompts(new_narrative["narrative"])
         video_urls = generate_scene_videos(scene_prompts)
         combined_video_url = concatenate_videos(video_urls)
+        
+        # Generate audio for narrative
+        audio_url = generate_speech(new_narrative["narrative"])
 
         media_data = {
             "individual_videos": video_urls,
             "combined_video": combined_video_url,
+            "audio": audio_url
         }
 
         # Store in scene_cache for next time
-        db.execute(
-            "INSERT INTO scene_cache (scenario, partial_narrative, next_narrative, next_scene_prompts, next_media_urls) "
-            "VALUES (?, ?, ?, ?, ?)",
-            (
-                scenario,
-                partial_narrative_str,
-                json.dumps(new_narrative),
-                json.dumps(scene_prompts),
-                json.dumps(media_data),
-            ),
+        new_cache = SceneCache(
+            scenario=scenario,
+            partial_narrative=partial_narrative_str,
+            next_narrative=json.dumps(new_narrative),
+            next_scene_prompts=json.dumps(scene_prompts),
+            next_media_urls=json.dumps(media_data)
         )
-        db.commit()
+        db.session.add(new_cache)
+        db.session.commit()
         cached = False
 
     # 4) Update partial_narrative with the newly generated scene
     partial_narrative_obj["last_narrative"] = new_narrative
     updated_partial_narrative_str = json.dumps(partial_narrative_obj)
 
-    # 5) Update the session record with the new data
-    db.execute(
-        "UPDATE sessions "
-        "SET current_scene_id = ?, narrative_data = ?, scene_prompts = ?, media_urls = ?, partial_narrative = ? "
-        "WHERE id = ?",
-        (
-            new_narrative["scene_id"],
-            json.dumps(new_narrative),
-            json.dumps(scene_prompts),
-            json.dumps(media_data),
-            updated_partial_narrative_str,
-            session_id,
-        ),
+    # 5) Update the session record with the new data using SQLAlchemy
+    game_session.current_scene_id = new_narrative["scene_id"]
+    game_session.partial_narrative = updated_partial_narrative_str
+    
+    # Create related records
+    narrative_data = NarrativeData(
+        session_id=session_id,
+        data=json.dumps(new_narrative)
     )
-    db.commit()
+    
+    scene_prompt = ScenePrompt(
+        session_id=session_id,
+        data=json.dumps(scene_prompts)
+    )
+    
+    media_url = MediaUrl(
+        session_id=session_id,
+        data=json.dumps(media_data)
+    )
+    
+    db.session.add_all([narrative_data, scene_prompt, media_url])
+    db.session.commit()
 
     return jsonify(
         {
             "session_id": session_id,
             "narrative": new_narrative,
             "media": media_data["combined_video"],
+            "audio": media_data.get("audio"),
             "cached": cached,
         }
     )
@@ -215,7 +331,6 @@ def make_decision():
     update the decision_history, then check the cache using that as the key.
     If it doesn't exist, we generate the next scene. If it does, we reuse it.
     """
-    db = get_db()
     session_id = session.get("session_id")
     if not session_id:
         return jsonify({"error": "No active session"}), 400
@@ -223,15 +338,13 @@ def make_decision():
     decision_id = request.json.get("decision")
     current_scene_id = request.json.get("scene_id")
 
-    session_data = db.execute(
-        "SELECT * FROM sessions WHERE id = ?", (session_id,)
-    ).fetchone()
-
-    if not session_data:
+    # Query for session data using SQLAlchemy
+    game_session = GameSession.query.get(session_id)
+    if not game_session:
         return jsonify({"error": "Session not found"}), 404
 
-    scenario = session_data["scenario"]
-    partial_narrative_str = session_data["partial_narrative"]
+    scenario = game_session.scenario
+    partial_narrative_str = game_session.partial_narrative
     if not partial_narrative_str:
         return jsonify({"error": "No partial_narrative found in session"}), 400
 
@@ -249,91 +362,101 @@ def make_decision():
     if selected_option:
         print(f"Selected: {selected_option['option']}")
 
-    # 1) Add the new decision to the decision_history
-    decision_history.append(
-        {
-            "scene_id": last_narrative["scene_id"] if last_narrative else 0,
-            "decision": decision_id,
-            "decision_text": selected_option["option"] if selected_option else "",
-        }
-    )
-
-    # 2) The new partial_narrative includes the same scenario & last_narrative,
-    #    but we haven't advanced to the new scene yet. So we look up the next scene in cache
-    #    keyed by the entire partial_narrative including this updated decision_history.
-    updated_partial_narrative_obj = {
-        "scenario": scenario,
-        "last_narrative": last_narrative,  # still the old scene
-        "decision_history": decision_history,
+    # Update decision history - use the same format as the original implementation
+    decision_record = {
+        "scene_id": last_narrative["scene_id"] if last_narrative else 0,
+        "decision": decision_id,
+        "decision_text": selected_option["option"] if selected_option else ""
     }
-    updated_partial_narrative_str = json.dumps(updated_partial_narrative_obj)
+    decision_history.append(decision_record)
+    partial_narrative_obj["decision_history"] = decision_history
+    updated_partial_narrative_str = json.dumps(partial_narrative_obj)
 
-    cache_row = db.execute(
-        "SELECT next_narrative, next_scene_prompts, next_media_urls FROM scene_cache "
-        "WHERE scenario = ? AND partial_narrative = ?",
-        (scenario, updated_partial_narrative_str),
-    ).fetchone()
+    # Check the scene cache using SQLAlchemy
+    cache_entry = SceneCache.query.filter_by(
+        scenario=scenario,
+        partial_narrative=updated_partial_narrative_str
+    ).first()
 
-    if cache_row:
-        print("Found cached next scene for the existing partial_narrative + decision.")
-        new_narrative = json.loads(cache_row["next_narrative"])
-        scene_prompts = json.loads(cache_row["next_scene_prompts"])
-        media_data = json.loads(cache_row["next_media_urls"])
+    if cache_entry:
+        # Found in cache, use the pre-generated content
+        print("Found cached next scene")
+        next_narrative = cache_entry.next_narrative_obj
+        scene_prompts = cache_entry.next_scene_prompts_obj
+        media_data = cache_entry.next_media_urls_obj
         cached = True
     else:
-        # Generate new scene
-        new_narrative = generate_narrative(last_narrative, decision_id, None)
-        scene_prompts = generate_scene_prompts(new_narrative["narrative"])
+        # Generate a new scene
+        print("Generating new scene")
+        next_narrative = generate_narrative(
+            last_narrative, decision_history, scenario
+        )
+        scene_prompts = generate_scene_prompts(next_narrative["narrative"])
         video_urls = generate_scene_videos(scene_prompts)
         combined_video_url = concatenate_videos(video_urls)
+        
+        # Generate audio for narrative
+        audio_url = generate_speech(new_narrative["narrative"])
 
         media_data = {
             "individual_videos": video_urls,
             "combined_video": combined_video_url,
+            "audio": audio_url
         }
 
-        # Store in the cache
-        db.execute(
-            "INSERT INTO scene_cache (scenario, partial_narrative, next_narrative, next_scene_prompts, next_media_urls) "
-            "VALUES (?, ?, ?, ?, ?)",
-            (
-                scenario,
-                updated_partial_narrative_str,
-                json.dumps(new_narrative),
-                json.dumps(scene_prompts),
-                json.dumps(media_data),
-            ),
+        # Save to cache for future reuse
+        new_cache = SceneCache(
+            scenario=scenario,
+            partial_narrative=updated_partial_narrative_str,
+            next_narrative=json.dumps(next_narrative),
+            next_scene_prompts=json.dumps(scene_prompts),
+            next_media_urls=json.dumps(media_data)
         )
-        db.commit()
+        db.session.add(new_cache)
+        db.session.commit()
         cached = False
 
-    # 3) Now update partial_narrative so that last_narrative is set to the newly generated scene
-    updated_partial_narrative_obj["last_narrative"] = new_narrative
-    updated_partial_narrative_str = json.dumps(updated_partial_narrative_obj)
+    # Prepare for the next scene by updating partial_narrative
+    partial_narrative_obj["last_narrative"] = next_narrative
+    game_session.partial_narrative = json.dumps(partial_narrative_obj)
+    game_session.current_scene_id = next_narrative["scene_id"]
 
-    # 4) Update the session's record
-    #    Also reflect the new scene in narrative_data, scene_prompts, media_urls
-    db.execute(
-        "UPDATE sessions "
-        "SET current_scene_id = ?, narrative_data = ?, scene_prompts = ?, media_urls = ?, "
-        "    decision_history = ?, partial_narrative = ? "
-        "WHERE id = ?",
-        (
-            new_narrative["scene_id"],
-            json.dumps(new_narrative),
-            json.dumps(scene_prompts),
-            json.dumps(media_data),
-            json.dumps(decision_history),
-            updated_partial_narrative_str,
-            session_id,
-        ),
-    )
-    db.commit()
+    # Update related data
+    if game_session.narrative_data:
+        game_session.narrative_data.data = json.dumps(next_narrative)
+    else:
+        narrative_data = NarrativeData(
+            session_id=session_id,
+            data=json.dumps(next_narrative)
+        )
+        db.session.add(narrative_data)
+    
+    if game_session.scene_prompts:
+        game_session.scene_prompts.data = json.dumps(scene_prompts)
+    else:
+        scene_prompt = ScenePrompt(
+            session_id=session_id, 
+            data=json.dumps(scene_prompts)
+        )
+        db.session.add(scene_prompt)
+    
+    if game_session.media_urls:
+        game_session.media_urls.data = json.dumps(media_data)
+    else:
+        media_url = MediaUrl(
+            session_id=session_id,
+            data=json.dumps(media_data)
+        )
+        db.session.add(media_url)
+    
+    db.session.commit()
 
     return jsonify(
         {
-            "narrative": new_narrative,
+            "session_id": session_id,
+            "narrative": next_narrative,
             "media": media_data["combined_video"],
+            "audio": media_data.get("audio"),
             "cached": cached,
         }
     )
@@ -346,23 +469,23 @@ def get_progress():
     if not session_id:
         return jsonify({"error": "No active session"}), 400
 
-    db = get_db()
-    progress_data = db.execute(
-        "SELECT decision_history FROM sessions WHERE id = ?", (session_id,)
-    ).fetchone()
-
-    if not progress_data or not progress_data["decision_history"]:
-        return jsonify({"decisions": []})
-
-    return jsonify({"decisions": json.loads(progress_data["decision_history"])})
+    # Query for session data using SQLAlchemy
+    game_session = GameSession.query.get(session_id)
+    if not game_session:
+        return jsonify({"error": "Session not found"}), 404
+    
+    # Use our decision_history property
+    decisions = game_session.decision_history
+    
+    return jsonify({"decisions": decisions})
 
 
 @app.route("/api/scenarios", methods=["GET"])
 def get_scenarios():
     """Get all distinct scenarios from the database."""
-    db = get_db()
-    rows = db.execute("SELECT DISTINCT scenario FROM sessions").fetchall()
-    scenario_list = [row["scenario"] for row in rows]
+    # Get distinct scenarios using SQLAlchemy
+    scenarios = db.session.query(GameSession.scenario).distinct().all()
+    scenario_list = [row[0] for row in scenarios]
 
     return jsonify({"scenarios": scenario_list})
 
@@ -374,20 +497,20 @@ def add_scenario():
     if not scenario_name:
         return jsonify({"error": "No scenario name provided"}), 400
 
-    db = get_db()
-    existing = db.execute(
-        "SELECT 1 FROM sessions WHERE scenario = ?", (scenario_name,)
-    ).fetchone()
-
+    # Check if scenario exists using SQLAlchemy
+    existing = GameSession.query.filter_by(scenario=scenario_name).first()
     if existing:
         return jsonify({"success": False, "message": "Scenario already exists"}), 409
 
+    # Create new session with this scenario
     new_id = str(uuid.uuid4())
-    db.execute(
-        "INSERT INTO sessions (id, scenario, current_scene_id) VALUES (?, ?, 0)",
-        (new_id, scenario_name),
+    game_session = GameSession(
+        id=new_id,
+        scenario=scenario_name,
+        current_scene_id=0
     )
-    db.commit()
+    db.session.add(game_session)
+    db.session.commit()
 
     return jsonify({"success": True, "scenario": scenario_name})
 
@@ -398,9 +521,9 @@ def delete_scenario(scenario_name):
     if not scenario_name:
         return jsonify({"error": "No scenario name provided"}), 400
 
-    db = get_db()
-    db.execute("DELETE FROM sessions WHERE scenario = ?", (scenario_name,))
-    db.commit()
+    # Delete scenario sessions using SQLAlchemy
+    GameSession.query.filter_by(scenario=scenario_name).delete()
+    db.session.commit()
 
     return jsonify(
         {"success": True, "message": f'Scenario "{scenario_name}" deleted successfully'}
@@ -495,6 +618,39 @@ def get_scenario_preview(scenario_name):
     
     # If we couldn't get a frame, return a placeholder
     return jsonify({"preview_url": "/static/images/placeholder.jpg"})
+
+@app.route("/api/quiz", methods=["GET"])
+def get_quiz():
+    """Get a dynamic quiz question related to the current scenario/narrative."""
+    session_id = session.get("session_id")
+    
+    try:
+        if session_id:
+            # Get the current session using SQLAlchemy
+            game_session = GameSession.query.get(session_id)
+            
+            if game_session:
+                scenario = game_session.scenario
+                narrative = None
+                
+                # Get narrative data from the related table
+                narrative_data_record = NarrativeData.query.filter_by(session_id=session_id).first()
+                if narrative_data_record:
+                    narrative_data = json.loads(narrative_data_record.data)
+                    narrative = narrative_data.get("narrative")
+                
+                # Generate question based on context
+                question = generate_quiz_question(scenario=scenario, narrative=narrative)
+                return jsonify({"question": question})
+        
+        # If no session or no data, generate a generic question
+        question = generate_quiz_question()
+        return jsonify({"question": question})
+    
+    except Exception as e:
+        print(f"Error generating quiz question: {e}")
+        # Fall back to static questions if generation fails
+        return jsonify({"question": get_fallback_question()})
 
 
 if __name__ == "__main__":
