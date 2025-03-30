@@ -91,6 +91,36 @@ This implementation uses:
 - Replicate API for image generation
 - A placeholder implementation of RunwayML for video generation in demo mode
 
+## Model Simplification
+
+The application has been simplified to remove the distinction between classes and assignments. Now:
+
+- Teachers create assignments with a specific scenario
+- Each assignment generates a unique access code
+- Students join assignments directly using the access code
+- All functionality related to creating/joining classes has been removed
+
+### Applying the Model Changes
+
+To apply these changes to an existing database:
+
+1. Run the migration script:
+   ```
+   python reset_migration.py
+   ```
+
+This will:
+- Reset the database with the simplified model
+- Remove class-related tables and references
+- Keep the core functionality intact for assignments and scenario selection
+
+### Model Changes Overview
+
+- Removed `Class` model and all related associations
+- Simplified `Assignment` model to no longer reference classes
+- Updated UI to focus solely on assignments
+- Scenario selection is now done directly when creating an assignment
+
 ## License
 
 MIT 

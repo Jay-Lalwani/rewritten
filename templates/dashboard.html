@@ -19,13 +19,11 @@
         <!-- Teacher-specific sidebar items -->
         <a href="#" class="list-group-item list-group-item-action" onclick="showTeacherPanel('story-gallery')">Story Gallery</a>
         <a href="#" class="list-group-item list-group-item-action" onclick="showTeacherPanel('manage-assignments')">Manage Assignments</a>
-        <a href="#" class="list-group-item list-group-item-action" onclick="showTeacherPanel('manage-classes')">Manage Classes</a>
         <a href="#" class="list-group-item list-group-item-action" onclick="showTeacherPanel('track-progress')">Track Progress</a>
         {% else %}
         <!-- Student-specific sidebar items -->
         <a href="#" class="list-group-item list-group-item-action" onclick="showStudentPanel('join-assignment')">Join Assignment</a>
         <a href="#" class="list-group-item list-group-item-action" onclick="showStudentPanel('my-assignments')">My Assignments</a>
-        <a href="#" class="list-group-item list-group-item-action" onclick="showStudentPanel('join-class')">Join Class</a>
         <a href="#" class="list-group-item list-group-item-action" onclick="showStudentPanel('my-progress')">My Progress</a>
         {% endif %}
       </div>
@@ -54,23 +52,10 @@
           <div class="col-md-6">
             <div class="card mb-4">
               <div class="card-header">
-                <h5 class="mb-0">Your Classes</h5>
+                <h5 class="mb-0">Your Assignments</h5>
               </div>
-              <div class="card-body">
-                {% if user.classes %}
-                  <div class="list-group">
-                    {% for class in user.classes %}
-                      <div class="list-group-item">
-                        <h5>{{ class.name }}</h5>
-                        <p>{{ class.subject }}</p>
-                        <small>{{ class.students|length }} students</small>
-                      </div>
-                    {% endfor %}
-                  </div>
-                {% else %}
-                  <p>You don't have any classes yet.</p>
-                  <a href="#" class="btn btn-primary" onclick="showTeacherPanel('manage-classes')">Create a class</a>
-                {% endif %}
+              <div class="card-body" id="dashboard-assignments-list">
+                <p class="text-center text-muted">Loading assignments...</p>
               </div>
             </div>
           </div>
@@ -108,18 +93,12 @@
                 <input type="text" class="form-control" id="assignment-title" placeholder="Apollo 11 Mission" required>
               </div>
               <div class="mb-3">
-                <label class="form-label">Scenario</label>
-                <p class="form-text">Currently using: <strong>Apollo 11</strong></p>
-              </div>
-              <div class="mb-3">
-                <label for="assignment-class" class="form-label">Assign to Class (Optional)</label>
-                <select class="form-select" id="assignment-class">
-                  <option value="">None</option>
-                  {% if user.classes %}
-                    {% for class in user.classes %}
-                      <option value="{{ class.id }}">{{ class.name }}</option>
-                    {% endfor %}
-                  {% endif %}
+                <label for="assignment-scenario" class="form-label">Scenario</label>
+                <select class="form-select" id="assignment-scenario" required>
+                  <option value="" selected disabled>Select a scenario</option>
+                  <option value="Apollo 11">Apollo 11</option>
+                  <option value="Cuban Missile Crisis">Cuban Missile Crisis</option>
+                  <option value="Manhattan Project">Manhattan Project</option>
                 </select>
               </div>
               <button type="submit" class="btn btn-primary">Create Assignment</button>
@@ -157,11 +136,6 @@
         <p>Create and manage historical scenarios for your students.</p>
       </div>
       
-      <div id="manage-classes-panel" class="panel" style="display: none;">
-        <h2>Manage Classes</h2>
-        <p>Create and manage your classes.</p>
-      </div>
-      
       <div id="track-progress-panel" class="panel" style="display: none;">
         <h2>Track Progress</h2>
         <p>Monitor your students' progress on assignments.</p>
@@ -174,23 +148,10 @@
           <div class="col-md-6">
             <div class="card mb-4">
               <div class="card-header">
-                <h5 class="mb-0">Your Classes</h5>
+                <h5 class="mb-0">Your Assignments</h5>
               </div>
-              <div class="card-body">
-                {% if user.classes %}
-                  <div class="list-group">
-                    {% for class in user.classes %}
-                      <div class="list-group-item">
-                        <h5>{{ class.name }}</h5>
-                        <p>{{ class.subject }}</p>
-                        <small>Teacher: {{ class.teacher.name }}</small>
-                      </div>
-                    {% endfor %}
-                  </div>
-                {% else %}
-                  <p>You're not enrolled in any classes yet.</p>
-                  <a href="#" class="btn btn-primary" onclick="showStudentPanel('join-class')">Join a class</a>
-                {% endif %}
+              <div class="card-body" id="dashboard-student-assignments-list">
+                <p class="text-center text-muted">Loading assignments...</p>
               </div>
             </div>
           </div>
@@ -253,12 +214,6 @@
         </div>
       </div>
       
-      <!-- Other student panels (initially hidden) -->
-      <div id="join-class-panel" class="panel" style="display: none;">
-        <h2>Join Class</h2>
-        <p>Join a class using a class code from your teacher.</p>
-      </div>
-      
       <div id="my-progress-panel" class="panel" style="display: none;">
         <h2>My Progress</h2>
         <p>Track your progress on assignments.</p>
@@ -302,6 +257,7 @@
     // Show the selected panel
     if (panelId === 'home') {
       document.getElementById('teacher-home-panel').style.display = 'block';
+      loadDashboardAssignments();
     } else {
       document.getElementById(`${panelId}-panel`).style.display = 'block';
     }
@@ -322,6 +278,7 @@
     // Show the selected panel
     if (panelId === 'home') {
       document.getElementById('student-home-panel').style.display = 'block';
+      loadDashboardStudentAssignments();
     } else {
       document.getElementById(`${panelId}-panel`).style.display = 'block';
     }
@@ -330,6 +287,86 @@
     if (panelId === 'my-assignments') {
       loadStudentAssignments();
     }
+  }
+  
+  // Load assignments for teacher dashboard
+  function loadDashboardAssignments() {
+    fetch('/api/assignments')
+      .then(response => response.json())
+      .then(data => {
+        const assignmentsList = document.getElementById('dashboard-assignments-list');
+        
+        if (data.assignments && data.assignments.length > 0) {
+          let html = '<div class="list-group">';
+          // Show max 3 most recent assignments
+          const recentAssignments = data.assignments.slice(0, 3);
+          
+          recentAssignments.forEach(assignment => {
+            html += `
+              <div class="list-group-item">
+                <h5>${assignment.title}</h5>
+                <p>Scenario: ${assignment.scenario}</p>
+                <small>Code: <strong>${assignment.access_code}</strong></small>
+              </div>
+            `;
+          });
+          
+          html += '</div>';
+          if (data.assignments.length > 3) {
+            html += '<div class="mt-2 text-center"><a href="#" onclick="showTeacherPanel(\'manage-assignments\')">View all assignments</a></div>';
+          }
+          assignmentsList.innerHTML = html;
+        } else {
+          assignmentsList.innerHTML = '<p>You don\'t have any assignments yet.</p><button class="btn btn-primary mt-2" onclick="showTeacherPanel(\'manage-assignments\')">Create an assignment</button>';
+        }
+      })
+      .catch(error => {
+        console.error('Error loading assignments:', error);
+        document.getElementById('dashboard-assignments-list').innerHTML = '<p class="text-danger">Error loading assignments.</p>';
+      });
+  }
+  
+  // Load assignments for student dashboard
+  function loadDashboardStudentAssignments() {
+    fetch('/api/student/assignments')
+      .then(response => response.json())
+      .then(data => {
+        const assignmentsList = document.getElementById('dashboard-student-assignments-list');
+        
+        if (data.assignments && data.assignments.length > 0) {
+          let html = '<div class="list-group">';
+          // Show max 3 most recent assignments
+          const recentAssignments = data.assignments.slice(0, 3);
+          
+          recentAssignments.forEach(assignment => {
+            const statusBadge = assignment.completed 
+              ? '<span class="badge bg-success">Completed</span>' 
+              : '<span class="badge bg-warning text-dark">In Progress</span>';
+              
+            html += `
+              <div class="list-group-item">
+                <div class="d-flex w-100 justify-content-between">
+                  <h5>${assignment.title}</h5>
+                  ${statusBadge}
+                </div>
+                <p>Scenario: ${assignment.scenario}</p>
+              </div>
+            `;
+          });
+          
+          html += '</div>';
+          if (data.assignments.length > 3) {
+            html += '<div class="mt-2 text-center"><a href="#" onclick="showStudentPanel(\'my-assignments\')">View all assignments</a></div>';
+          }
+          assignmentsList.innerHTML = html;
+        } else {
+          assignmentsList.innerHTML = '<p>You haven\'t joined any assignments yet.</p><button class="btn btn-primary mt-2" onclick="showStudentPanel(\'join-assignment\')">Join an assignment</button>';
+        }
+      })
+      .catch(error => {
+        console.error('Error loading assignments:', error);
+        document.getElementById('dashboard-student-assignments-list').innerHTML = '<p class="text-danger">Error loading assignments.</p>';
+      });
   }
   
   // Teacher: Load assignments
@@ -444,7 +481,6 @@
               <p><strong>Scenario:</strong> ${assignment.scenario}</p>
               <p><strong>Access Code:</strong> <span class="badge bg-primary">${assignment.access_code}</span></p>
               <p><strong>Created:</strong> ${new Date(assignment.created_at).toLocaleString()}</p>
-              ${assignment.class_name ? `<p><strong>Class:</strong> ${assignment.class_name}</p>` : ''}
             </div>
           </div>
           
@@ -510,6 +546,13 @@
   
   // Add event listeners when the page loads
   document.addEventListener('DOMContentLoaded', function() {
+    // Initialize dashboard
+    if ('{{ user_type }}' === 'teacher') {
+      loadDashboardAssignments();
+    } else {
+      loadDashboardStudentAssignments();
+    }
+    
     // Teacher: Create assignment form submission
     const createAssignmentForm = document.getElementById('create-assignment-form');
     if (createAssignmentForm) {
@@ -517,7 +560,7 @@
         e.preventDefault();
         
         const title = document.getElementById('assignment-title').value;
-        const classId = document.getElementById('assignment-class').value;
+        const scenario = document.getElementById('assignment-scenario').value;
         
         fetch('/api/assignments', {
           method: 'POST',
@@ -526,7 +569,7 @@
           },
           body: JSON.stringify({
             title: title,
-            class_id: classId || null
+            scenario: scenario
           }),
         })
         .then(response => response.json())

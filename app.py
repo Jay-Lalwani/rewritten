@@ -573,10 +573,9 @@ def create_assignment():
     
     teacher_id = session.get("user_id")
     
-    # For now, hardcode the scenario to Apollo 11
-    scenario = "Apollo 11"
+    # Get scenario from the request
+    scenario = request.json.get("scenario", "Apollo 11")
     title = request.json.get("title", f"Assignment: {scenario}")
-    class_id = request.json.get("class_id")  # Optional
     
     # Generate a unique access code
     access_code = generate_access_code()
@@ -586,8 +585,7 @@ def create_assignment():
         title=title,
         scenario=scenario,
         access_code=access_code,
-        teacher_id=teacher_id,
-        class_id=class_id
+        teacher_id=teacher_id
     )
     
     db.session.add(assignment)
@@ -627,8 +625,7 @@ def get_teacher_assignments():
             "access_code": assignment.access_code,
             "created_at": assignment.created_at.isoformat(),
             "student_count": student_count,
-            "is_active": assignment.is_active,
-            "class_name": assignment.class_.name if assignment.class_ else None
+            "is_active": assignment.is_active
         })
     
     return jsonify({"assignments": assignment_list})
@@ -677,7 +674,6 @@ def get_assignment_details(assignment_id):
             "access_code": assignment.access_code,
             "created_at": assignment.created_at.isoformat(),
             "is_active": assignment.is_active,
-            "class_name": assignment.class_.name if assignment.class_ else None,
             "students": students_data
         }
     })
@@ -793,7 +789,6 @@ def get_student_assignments():
             "title": assignment.title,
             "scenario": assignment.scenario,
             "teacher_name": assignment.teacher.name,
-            "class_name": assignment.class_.name if assignment.class_ else None,
             "completed": progress.get("completed", False),
             "score": progress.get("score"),
             "last_scene_id": progress.get("last_scene_id", 0)
