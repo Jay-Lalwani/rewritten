@@ -14,6 +14,7 @@ from api.media_generator import concatenate_videos, generate_scene_videos
 from api.producer_agent import generate_scene_prompts
 from api.writer_agent import generate_narrative
 from api.tts_agent import generate_speech
+from api.quiz_agent import generate_quiz_question, get_fallback_question
 from database.db import get_db, init_db
 
 # Load environment variables
@@ -417,6 +418,40 @@ def delete_scenario(scenario_name):
         {"success": True, "message": f'Scenario "{scenario_name}" deleted successfully'}
     )
 
+@app.route("/api/quiz", methods=["GET"])
+def get_quiz():
+    """Get a dynamic quiz question related to the current scenario/narrative."""
+    db = get_db()
+    session_id = session.get("session_id")
+    
+    try:
+        if session_id:
+            # Get the current scenario and narrative if available
+            session_data = db.execute(
+                "SELECT scenario, narrative_data FROM sessions WHERE id = ?", 
+                (session_id,)
+            ).fetchone()
+            
+            if session_data:
+                scenario = session_data["scenario"]
+                narrative = None
+                
+                if session_data["narrative_data"]:
+                    narrative_data = json.loads(session_data["narrative_data"])
+                    narrative = narrative_data.get("narrative")
+                
+                # Generate question based on context
+                question = generate_quiz_question(scenario=scenario, narrative=narrative)
+                return jsonify({"question": question})
+        
+        # If no session or no data, generate a generic question
+        question = generate_quiz_question()
+        return jsonify({"question": question})
+    
+    except Exception as e:
+        print(f"Error generating quiz question: {e}")
+        # Fall back to static questions if generation fails
+        return jsonify({"question": get_fallback_question()})
 
 if __name__ == "__main__":
     app.run(debug=True, port=5001)
